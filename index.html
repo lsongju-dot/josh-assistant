@@ -1,0 +1,1803 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1c6b5a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="조쉬">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>조쉬 - 구독비 및 편집 단가 계산기</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-soft: #eef3f8;
+      --line: #d9e0e7;
+      --text: #17202a;
+      --muted: #607080;
+      --accent: #1c6b5a;
+      --accent-strong: #155143;
+      --accent-soft: #dceee9;
+      --warn: #a95d00;
+      --danger: #b42318;
+      --ok: #12704e;
+      --shadow: 0 12px 30px rgba(31, 45, 61, 0.08);
+      font-family: Inter, "Pretendard", "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+
+    .button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid rgba(28, 107, 90, 0.28);
+      outline-offset: 2px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 390px) minmax(0, 1fr) minmax(300px, 380px);
+      gap: 18px;
+      padding: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .summary-panel {
+      position: sticky;
+      top: 76px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label,
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-width: 0;
+      height: 38px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 7px;
+      padding: 0 10px;
+      color: var(--text);
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--line);
+      margin: 16px 0;
+    }
+
+    .services {
+      display: grid;
+      gap: 10px;
+    }
+
+    .service-row {
+      display: grid;
+      grid-template-columns: 28px minmax(110px, 150px) minmax(180px, 1fr) minmax(96px, 110px) minmax(108px, 132px);
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .service-row.is-off {
+      background: #f8fafb;
+      color: var(--muted);
+    }
+
+    .service-name {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .service-name strong {
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .service-name span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .service-cost {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      color: var(--accent-strong);
+    }
+
+    .service-cost small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .compact-input {
+      display: grid;
+      gap: 4px;
+    }
+
+    .compact-input input {
+      height: 32px;
+      font-size: 13px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 82px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .metric.wide {
+      grid-column: 1 / -1;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: clamp(18px, 2.5vw, 26px);
+      line-height: 1.1;
+      letter-spacing: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric em {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-style: normal;
+      line-height: 1.35;
+    }
+
+    .quote-box {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quote-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    .quote-line:last-child {
+      border-bottom: 0;
+    }
+
+    .quote-line span:first-child {
+      color: var(--muted);
+    }
+
+    .quote-line strong {
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .status {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--panel-soft);
+      color: var(--muted);
+    }
+
+    .status.ok {
+      color: var(--ok);
+      background: #ddf4e8;
+    }
+
+    .status.warn {
+      color: var(--warn);
+      background: #fff0d9;
+    }
+
+    .status.danger {
+      color: var(--danger);
+      background: #fde2df;
+    }
+
+    .sources {
+      padding-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sources a {
+      color: var(--accent-strong);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(21, 81, 67, 0.25);
+    }
+
+    .empty-state {
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      color: var(--muted);
+      background: #fbfcfd;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .schedule-panel {
+      grid-column: 1 / -1;
+    }
+
+    .schedule-form {
+      display: grid;
+      grid-template-columns: minmax(160px, 1.2fr) repeat(5, minmax(110px, 1fr)) minmax(160px, 1.4fr);
+      gap: 10px;
+      align-items: end;
+    }
+
+    .schedule-form .button {
+      justify-content: center;
+      width: 100%;
+    }
+
+    .schedule-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .schedule-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .schedule-card header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .schedule-title {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .schedule-title strong {
+      font-size: 15px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .schedule-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .chip.fixed {
+      color: var(--danger);
+      background: #fde2df;
+    }
+
+    .chip.target {
+      color: var(--warn);
+      background: #fff0d9;
+    }
+
+    .schedule-lines {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .schedule-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 7px;
+    }
+
+    .schedule-line:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .schedule-line strong {
+      color: var(--text);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-track {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e8edf2;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      background: var(--accent);
+    }
+
+    .schedule-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .button.danger {
+      border-color: #f0c8c4;
+      color: var(--danger);
+      background: #fff7f6;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
+      }
+
+      .layout > .panel:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .summary-panel {
+        position: static;
+      }
+
+      .schedule-form,
+      .schedule-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 820px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      .top-actions {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .button {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+
+      .layout > .panel:last-child {
+        grid-column: auto;
+      }
+
+      .summary-panel {
+        order: -2;
+      }
+
+      .schedule-panel {
+        order: -1;
+      }
+
+      .schedule-form,
+      .schedule-list {
+        grid-template-columns: 1fr;
+      }
+
+      .schedule-actions {
+        grid-template-columns: 1fr 76px;
+      }
+
+      .service-row {
+        grid-template-columns: 28px minmax(0, 1fr);
+      }
+
+      .service-row select,
+      .service-row .compact-input,
+      .service-row .service-cost {
+        grid-column: 2 / -1;
+      }
+
+      .service-cost {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .brand {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .brand span {
+        white-space: normal;
+      }
+
+      .field-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .top-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .button {
+        min-height: 42px;
+      }
+
+      input,
+      select {
+        height: 42px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <h1>조쉬</h1>
+        <span>구독비 · 편집시간 · 마감 보고 계산</span>
+      </div>
+      <div class="top-actions">
+        <button class="button" id="presetSeriEp2Button" type="button">세리님 EP2</button>
+        <button class="button" id="presetOutsourceButton" type="button">정기 외주 예시</button>
+        <button class="button" id="applyButton" type="button">적용</button>
+        <button class="button" id="exportButton" type="button">백업 복사</button>
+        <button class="button" id="importButton" type="button">백업 가져오기</button>
+        <button class="button" id="resetButton" type="button">초기값</button>
+        <button class="button primary" id="copyButton" type="button">요약 복사</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel settings-panel" aria-labelledby="settingsTitle">
+        <div class="panel-header">
+          <h2 id="settingsTitle">계산 기준</h2>
+        </div>
+        <div class="panel-body">
+          <div class="field-grid">
+            <div class="field">
+              <label for="exchangeRate">환율</label>
+              <input id="exchangeRate" type="number" min="1" step="1" value="1400">
+            </div>
+            <div class="field">
+              <label for="feeRate">세금/카드수수료 %</label>
+              <input id="feeRate" type="number" min="0" step="0.1" value="10">
+            </div>
+            <div class="field">
+              <label for="monthlyProjects">월 평균 편집 건수</label>
+              <input id="monthlyProjects" type="number" min="1" step="1" value="8">
+            </div>
+            <div class="field">
+              <label for="monthlyHours">월 편집 가능 시간</label>
+              <input id="monthlyHours" type="number" min="1" step="1" value="120">
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label for="baseHours">예상 편집시간</label>
+              <input id="baseHours" type="number" min="0.5" step="0.5" value="10">
+            </div>
+            <div class="field">
+              <label for="hourlyRate">희망 시급</label>
+              <input id="hourlyRate" type="number" min="0" step="1000" value="30000">
+            </div>
+            <div class="field">
+              <label for="projectPrice">실제 수령액</label>
+              <input id="projectPrice" type="number" min="0" step="10000" value="0">
+            </div>
+            <div class="field">
+              <label for="condition">컨디션</label>
+              <select id="condition">
+                <option value="0">좋음 · +0시간</option>
+                <option value="0.5" selected>보통 · +0.5시간</option>
+                <option value="1">나쁨 · +1시간</option>
+                <option value="2">많이 나쁨 · +2시간</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="difficulty">난이도</label>
+              <select id="difficulty">
+                <option value="1">기본 · 100%</option>
+                <option value="1.25" selected>자막/소스 많음 · 125%</option>
+                <option value="1.5">연출/그래픽 많음 · 150%</option>
+                <option value="1.8">광고/고난도 · 180%</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="rush">납기</label>
+              <select id="rush">
+                <option value="1" selected>일반 · 100%</option>
+                <option value="1.2">빠듯함 · 120%</option>
+                <option value="1.5">48시간 이내 · 150%</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="dailyHours">하루 가능 시간</label>
+              <input id="dailyHours" type="number" min="0.5" step="0.5" value="4">
+            </div>
+            <div class="field">
+              <label for="startDate">시작일</label>
+              <input id="startDate" type="date">
+            </div>
+            <div class="field">
+              <label for="deadline">마감일</label>
+              <input id="deadline" type="date">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel services-panel" aria-labelledby="servicesTitle">
+        <div class="panel-header">
+          <h2 id="servicesTitle">유료 프로그램</h2>
+        </div>
+        <div class="panel-body">
+          <div class="services" id="services"></div>
+          <div class="sources">
+            <a href="https://elements.envato.com/pricing" target="_blank" rel="noreferrer">Envato</a>
+            <a href="https://openai.com/chatgpt/pricing/" target="_blank" rel="noreferrer">ChatGPT</a>
+            <a href="https://www.capcut.com/tools/desktop-video-editor" target="_blank" rel="noreferrer">CapCut</a>
+            <a href="https://www.adobe.com/creativecloud/plans.html" target="_blank" rel="noreferrer">Adobe</a>
+            <a href="https://artlist.io/pricing/" target="_blank" rel="noreferrer">Artlist</a>
+            <a href="https://www.epidemicsound.com/pricing/" target="_blank" rel="noreferrer">Epidemic Sound</a>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel summary-panel" aria-labelledby="summaryTitle">
+        <div class="panel-header">
+          <h2 id="summaryTitle">요약</h2>
+        </div>
+        <div class="panel-body">
+          <div class="summary-grid">
+            <div class="metric wide">
+              <span>월 구독비 추정</span>
+              <strong id="monthlyTotal">0원</strong>
+              <em id="selectedCount">선택된 서비스 0개</em>
+            </div>
+            <div class="metric">
+              <span>건당 프로그램비</span>
+              <strong id="costPerProject">0원</strong>
+              <em>월 건수 기준</em>
+            </div>
+            <div class="metric">
+              <span>시간당 프로그램비</span>
+              <strong id="costPerHour">0원</strong>
+              <em>월 가능 시간 기준</em>
+            </div>
+            <div class="metric">
+              <span>보정 편집시간</span>
+              <strong id="adjustedHours">0시간</strong>
+              <em>컨디션 지연 반영</em>
+            </div>
+            <div class="metric">
+              <span>권장 견적가</span>
+              <strong id="recommendedQuote">0원</strong>
+              <em>난이도/납기 반영</em>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="quote-box">
+            <div class="quote-line">
+              <span>인건비</span>
+              <strong id="laborCost">0원</strong>
+            </div>
+            <div class="quote-line">
+              <span>프로그램 배분</span>
+              <strong id="toolAllocation">0원</strong>
+            </div>
+            <div class="quote-line">
+              <span>최소 견적</span>
+              <strong id="minimumQuote">0원</strong>
+            </div>
+            <div class="quote-line">
+              <span>프리미엄 견적</span>
+              <strong id="premiumQuote">0원</strong>
+            </div>
+            <div class="quote-line">
+              <span>실제 시급</span>
+              <strong id="actualHourly">-</strong>
+            </div>
+            <div class="quote-line">
+              <span>권장가 대비</span>
+              <strong id="quoteGap">-</strong>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="quote-box">
+            <div class="quote-line">
+              <span>예상 완료일</span>
+              <strong id="finishDate">-</strong>
+            </div>
+            <div class="quote-line">
+              <span>2일 전 보고일</span>
+              <strong id="reportDate">-</strong>
+            </div>
+            <div class="quote-line">
+              <span>마감 상태</span>
+              <strong><span class="status" id="deadlineStatus">마감일 없음</span></strong>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+          <div class="empty-state" id="copyState">선택한 플랜과 직접 입력 금액은 이 브라우저에 자동 저장됩니다.</div>
+        </div>
+      </aside>
+
+      <section class="panel schedule-panel" aria-labelledby="scheduleTitle">
+        <div class="panel-header">
+          <h2 id="scheduleTitle">일정 보드</h2>
+        </div>
+        <div class="panel-body">
+          <div class="schedule-form">
+            <div class="field">
+              <label for="scheduleName">작업명</label>
+              <input id="scheduleName" type="text" value="세리님 채널 EP2">
+            </div>
+            <div class="field">
+              <label for="scheduleType">마감 구분</label>
+              <select id="scheduleType">
+                <option value="확정">확정</option>
+                <option value="희망" selected>희망</option>
+                <option value="수정대기">수정대기</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="scheduleDeadline">마감일</label>
+              <input id="scheduleDeadline" type="date" value="2026-07-08">
+            </div>
+            <div class="field">
+              <label for="scheduleHours">남은 시간</label>
+              <input id="scheduleHours" type="number" min="0.5" step="0.5" value="4">
+            </div>
+            <div class="field">
+              <label for="scheduleCondition">컨디션</label>
+              <select id="scheduleCondition">
+                <option value="0">좋음</option>
+                <option value="0.5">보통</option>
+                <option value="1">나쁨</option>
+                <option value="2" selected>많이 나쁨</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="scheduleDailyHours">오늘 가능</label>
+              <input id="scheduleDailyHours" type="number" min="0.5" step="0.5" value="4">
+            </div>
+            <div class="field">
+              <label for="scheduleProgress">진행률 %</label>
+              <input id="scheduleProgress" type="number" min="0" max="100" step="5" value="30">
+            </div>
+            <div class="field">
+              <label for="scheduleNotes">남은 작업</label>
+              <input id="scheduleNotes" type="text" value="보이스 조정, 배경음악 찾기, 1차본 전달">
+            </div>
+            <button class="button primary" id="addScheduleButton" type="button">일정 추가</button>
+            <button class="button" id="copyScheduleButton" type="button">일정 복사</button>
+          </div>
+
+          <div class="schedule-list" id="scheduleList"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "josh-subscription-calculator-v2";
+    const SCHEDULE_STORAGE_KEY = "josh-schedules-v1";
+
+    const servicesSeed = [
+      {
+        id: "envato",
+        name: "Envato",
+        note: "템플릿/소스",
+        enabled: true,
+        planId: "core_monthly",
+        customKrw: 0,
+        share: 1,
+        plans: [
+          { id: "core_monthly", label: "Core 월결제", usdMonthly: 39, billing: "월" },
+          { id: "core_annual", label: "Core 연간결제", usdMonthly: 16.5, billing: "연" },
+          { id: "plus_monthly", label: "Plus 월결제", usdMonthly: 59, billing: "월" },
+          { id: "plus_annual", label: "Plus 연간결제", usdMonthly: 39, billing: "연" },
+          { id: "ultimate_monthly", label: "Ultimate 월결제", usdMonthly: 169, billing: "월" },
+          { id: "ultimate_annual", label: "Ultimate 연간결제", usdMonthly: 109, billing: "연" },
+          { id: "custom", label: "직접 입력", custom: true, billing: "월" }
+        ]
+      },
+      {
+        id: "chatgpt",
+        name: "ChatGPT",
+        note: "기획/스크립트",
+        enabled: true,
+        planId: "plus",
+        customKrw: 0,
+        share: 1,
+        plans: [
+          { id: "free", label: "무료", usdMonthly: 0, billing: "월" },
+          { id: "plus", label: "Plus", usdMonthly: 20, billing: "월" },
+          { id: "pro100", label: "Pro 100", usdMonthly: 100, billing: "월" },
+          { id: "pro200", label: "Pro 200", usdMonthly: 200, billing: "월" },
+          { id: "custom", label: "직접 입력", custom: true, billing: "월" }
+        ]
+      },
+      {
+        id: "capcut",
+        name: "CapCut",
+        note: "빠른 편집",
+        enabled: true,
+        planId: "pro",
+        customKrw: 0,
+        share: 1,
+        plans: [
+          { id: "free", label: "무료", usdMonthly: 0, billing: "월" },
+          { id: "standard", label: "Standard 대략", usdMonthly: 9.99, billing: "월" },
+          { id: "pro", label: "Pro 대략", usdMonthly: 19.99, billing: "월" },
+          { id: "custom", label: "직접 입력", custom: true, billing: "월" }
+        ]
+      },
+      {
+        id: "cutback",
+        name: "컷백",
+        note: "자동 컷편집",
+        enabled: true,
+        planId: "basic",
+        customKrw: 0,
+        share: 1,
+        plans: [
+          { id: "basic", label: "Basic", krwMonthly: 16600, billing: "월" },
+          { id: "custom", label: "직접 입력", custom: true, billing: "월" }
+        ]
+      },
+      {
+        id: "adobe",
+        name: "Adobe",
+        note: "Premiere/Photoshop",
+        enabled: true,
+        planId: "premiere_photoshop",
+        customKrw: 0,
+        share: 1,
+        plans: [
+          { id: "premiere", label: "Premiere 단일", usdMonthly: 22.99, billing: "월" },
+          { id: "photoshop", label: "Photoshop 단일", usdMonthly: 22.99, billing: "월" },
+          { id: "premiere_photoshop", label: "Premiere+Photoshop", usdMonthly: 45.98, billing: "월" },
+          { id: "creative_cloud", label: "Creative Cloud 전체", usdMonthly: 69.99, billing: "월" },
+          { id: "custom", label: "직접 입력", custom: true, billing: "월" }
+        ]
+      },
+      {
+        id: "artlist",
+        name: "Artlist",
+        note: "음원/소스",
+        enabled: true,
+        planId: "personal_annual",
+        customKrw: 0,
+        share: 1,
+        plans: [
+          { id: "personal_annual", label: "1인용 연간 대략", usdMonthly: 9.99, billing: "연" },
+          { id: "max_annual", label: "Max 연간 대략", usdMonthly: 29.99, billing: "연" },
+          { id: "custom", label: "직접 입력", custom: true, billing: "월" }
+        ]
+      },
+      {
+        id: "epidemic",
+        name: "Epidemic",
+        note: "음원/상업용",
+        enabled: true,
+        planId: "commercial_annual",
+        customKrw: 0,
+        share: 1,
+        plans: [
+          { id: "personal_annual", label: "Personal 연간 대략", usdMonthly: 9.99, billing: "연" },
+          { id: "commercial_annual", label: "Commercial 연간 대략", usdMonthly: 24.99, billing: "연" },
+          { id: "pro_annual", label: "Pro/Team 연간 대략", usdMonthly: 49.99, billing: "연" },
+          { id: "custom", label: "직접 입력", custom: true, billing: "월" }
+        ]
+      }
+    ];
+
+    const controls = [
+      "exchangeRate",
+      "feeRate",
+      "monthlyProjects",
+      "monthlyHours",
+      "baseHours",
+      "hourlyRate",
+      "projectPrice",
+      "condition",
+      "difficulty",
+      "rush",
+      "dailyHours",
+      "startDate",
+      "deadline"
+    ];
+
+    let services = structuredClone(servicesSeed);
+
+    const schedulesSeed = [
+      {
+        id: "seri-ep2",
+        name: "세리님 채널 EP2",
+        type: "희망",
+        deadline: "2026-07-08",
+        remainingHours: 4,
+        conditionDelay: 2,
+        dailyHours: 4,
+        progress: 30,
+        notes: "보이스 조정, 배경음악 찾기, 1차본 전달"
+      }
+    ];
+
+    let schedules = structuredClone(schedulesSeed);
+
+    const formatter = new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency: "KRW",
+      maximumFractionDigits: 0
+    });
+
+    const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    });
+
+    function numberValue(id) {
+      const value = Number(document.getElementById(id).value);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function roundToThousand(value) {
+      return Math.round(value / 1000) * 1000;
+    }
+
+    function formatKrw(value) {
+      return formatter.format(Math.max(0, Math.round(value)));
+    }
+
+    function parseDateInput(value) {
+      if (!value) return null;
+      const [year, month, day] = value.split("-").map(Number);
+      if (!year || !month || !day) return null;
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDate(date) {
+      if (!date || Number.isNaN(date.getTime())) return "-";
+      return dateFormatter.format(date);
+    }
+
+    function addDays(date, days) {
+      const next = new Date(date);
+      next.setDate(next.getDate() + days);
+      return next;
+    }
+
+    function diffDays(start, end) {
+      const oneDay = 24 * 60 * 60 * 1000;
+      return Math.ceil((end.setHours(0, 0, 0, 0) - start.setHours(0, 0, 0, 0)) / oneDay);
+    }
+
+    function getSelectedPlan(service) {
+      return service.plans.find((plan) => plan.id === service.planId) || service.plans[0];
+    }
+
+    function normalizeConditionDelay(value) {
+      const raw = String(value);
+      if (raw === "1.2") return "0.5";
+      if (raw === "1.5") return "2";
+      return raw;
+    }
+
+    function monthlyKrw(service) {
+      if (!service.enabled) return 0;
+      const plan = getSelectedPlan(service);
+      const share = Math.max(1, Number(service.share) || 1);
+      if (plan.custom) {
+        return Math.max(0, Number(service.customKrw) || 0) / share;
+      }
+      if (plan.krwMonthly !== undefined) {
+        return plan.krwMonthly / share;
+      }
+      const exchangeRate = numberValue("exchangeRate");
+      const feeRate = numberValue("feeRate") / 100;
+      return (plan.usdMonthly * exchangeRate * (1 + feeRate)) / share;
+    }
+
+    function saveState() {
+      const controlState = {};
+      controls.forEach((id) => {
+        controlState[id] = document.getElementById(id).value;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ controls: controlState, services }));
+    }
+
+    function loadState() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.controls) {
+          controls.forEach((id) => {
+            if (parsed.controls[id] !== undefined) {
+              const value = id === "condition"
+                ? normalizeConditionDelay(parsed.controls[id])
+                : parsed.controls[id];
+              document.getElementById(id).value = value;
+            }
+          });
+        }
+        if (Array.isArray(parsed.services)) {
+          services = servicesSeed.map((seed) => {
+            const existing = parsed.services.find((item) => item.id === seed.id);
+            const merged = existing ? { ...seed, ...existing, plans: seed.plans } : seed;
+            if (
+              seed.id === "cutback" &&
+              existing &&
+              existing.planId === "custom" &&
+              existing.enabled === false &&
+              !existing.customKrw
+            ) {
+              return seed;
+            }
+            return merged;
+          });
+        }
+      } catch {
+        services = structuredClone(servicesSeed);
+      }
+    }
+
+    function loadSchedules() {
+      const stored = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+      if (!stored) return;
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          schedules = parsed.map((item) => ({
+            id: item.id || `schedule-${Date.now()}`,
+            name: item.name || "이름 없는 작업",
+            type: item.type || "희망",
+            deadline: item.deadline || "",
+            remainingHours: Number(item.remainingHours) || 0,
+            conditionDelay: Number(item.conditionDelay) || 0,
+            dailyHours: Number(item.dailyHours) || 4,
+            progress: Math.min(100, Math.max(0, Number(item.progress) || 0)),
+            notes: item.notes || ""
+          }));
+        }
+      } catch {
+        schedules = structuredClone(schedulesSeed);
+      }
+    }
+
+    function saveSchedules() {
+      localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(schedules));
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function conditionText(delay) {
+      if (Number(delay) >= 2) return "많이 나쁨";
+      if (Number(delay) >= 1) return "나쁨";
+      if (Number(delay) >= 0.5) return "보통";
+      return "좋음";
+    }
+
+    function scheduleTypeClass(type) {
+      if (type === "확정") return "fixed";
+      if (type === "희망") return "target";
+      return "";
+    }
+
+    function scheduleAdjustedHours(item) {
+      return Math.max(0, Number(item.remainingHours) || 0) + Math.max(0, Number(item.conditionDelay) || 0);
+    }
+
+    function scheduleStatus(item) {
+      const adjusted = scheduleAdjustedHours(item);
+      const daily = Math.max(0.5, Number(item.dailyHours) || 4);
+      const deadline = parseDateInput(item.deadline);
+      if (!deadline) {
+        return { text: "마감 미정", className: "warn", reportDate: "-", capacity: daily };
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(deadline);
+      target.setHours(0, 0, 0, 0);
+      const daysLeft = Math.ceil((target - today) / (24 * 60 * 60 * 1000));
+      const availableDays = Math.max(0, daysLeft + 1);
+      const capacity = availableDays * daily;
+      const reportDate = formatDate(addDays(deadline, -2));
+
+      if (item.type === "수정대기") {
+        return { text: "수정 대기", className: "", reportDate, capacity };
+      }
+      if (daysLeft < 0) {
+        return { text: "마감 지남", className: "danger", reportDate, capacity };
+      }
+      if (adjusted > capacity) {
+        return { text: "지연 위험", className: "danger", reportDate, capacity };
+      }
+      if (daysLeft <= 1 || adjusted > Math.max(0, capacity - daily)) {
+        return { text: "빠듯함", className: "warn", reportDate, capacity };
+      }
+      return { text: "여유", className: "ok", reportDate, capacity };
+    }
+
+    function sortedSchedules() {
+      const typeRank = { "확정": 0, "희망": 1, "수정대기": 2 };
+      return [...schedules].sort((a, b) => {
+        const aDate = parseDateInput(a.deadline);
+        const bDate = parseDateInput(b.deadline);
+        const aTime = aDate ? aDate.getTime() : Number.MAX_SAFE_INTEGER;
+        const bTime = bDate ? bDate.getTime() : Number.MAX_SAFE_INTEGER;
+        if (aTime !== bTime) return aTime - bTime;
+        return (typeRank[a.type] ?? 9) - (typeRank[b.type] ?? 9);
+      });
+    }
+
+    function renderSchedules() {
+      const container = document.getElementById("scheduleList");
+      if (!container) return;
+      if (!schedules.length) {
+        container.innerHTML = `<div class="empty-state">등록된 일정이 없습니다. 위 입력칸에 작업을 넣고 일정 추가를 눌러주세요.</div>`;
+        return;
+      }
+
+      container.innerHTML = sortedSchedules().map((item) => {
+        const adjusted = scheduleAdjustedHours(item);
+        const status = scheduleStatus(item);
+        const deadlineText = item.deadline ? formatDate(parseDateInput(item.deadline)) : "-";
+        const progress = Math.min(100, Math.max(0, Number(item.progress) || 0));
+        return `
+          <article class="schedule-card">
+            <header>
+              <div class="schedule-title">
+                <strong>${escapeHtml(item.name)}</strong>
+                <div class="schedule-tags">
+                  <span class="chip ${scheduleTypeClass(item.type)}">${escapeHtml(item.type)}</span>
+                  <span class="status ${status.className}">${status.text}</span>
+                </div>
+              </div>
+            </header>
+            <div class="progress-track" aria-label="진행률 ${progress}%">
+              <div class="progress-fill" style="width: ${progress}%"></div>
+            </div>
+            <div class="schedule-lines">
+              <div class="schedule-line"><span>진행률</span><strong>${progress}%</strong></div>
+              <div class="schedule-line"><span>보정 남은 시간</span><strong>${adjusted.toFixed(1)}시간</strong></div>
+              <div class="schedule-line"><span>마감일</span><strong>${deadlineText}</strong></div>
+              <div class="schedule-line"><span>2일 전 보고</span><strong>${status.reportDate}</strong></div>
+              <div class="schedule-line"><span>오늘 가능</span><strong>${Number(item.dailyHours || 0).toFixed(1)}시간</strong></div>
+              <div class="schedule-line"><span>컨디션</span><strong>${conditionText(item.conditionDelay)}</strong></div>
+            </div>
+            <div class="empty-state">${escapeHtml(item.notes || "남은 작업 메모 없음")}</div>
+            <div class="schedule-actions">
+              <button class="button" type="button" data-apply-schedule="${escapeHtml(item.id)}">계산에 적용</button>
+              <button class="button danger" type="button" data-delete-schedule="${escapeHtml(item.id)}">삭제</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      container.querySelectorAll("[data-apply-schedule]").forEach((button) => {
+        button.addEventListener("click", () => applyScheduleToCalculator(button.dataset.applySchedule));
+      });
+      container.querySelectorAll("[data-delete-schedule]").forEach((button) => {
+        button.addEventListener("click", () => deleteSchedule(button.dataset.deleteSchedule));
+      });
+    }
+
+    function readScheduleForm() {
+      return {
+        id: `schedule-${Date.now()}`,
+        name: document.getElementById("scheduleName").value.trim() || "이름 없는 작업",
+        type: document.getElementById("scheduleType").value,
+        deadline: document.getElementById("scheduleDeadline").value,
+        remainingHours: Math.max(0, numberValue("scheduleHours")),
+        conditionDelay: Math.max(0, numberValue("scheduleCondition")),
+        dailyHours: Math.max(0.5, numberValue("scheduleDailyHours")),
+        progress: Math.min(100, Math.max(0, numberValue("scheduleProgress"))),
+        notes: document.getElementById("scheduleNotes").value.trim()
+      };
+    }
+
+    function addSchedule() {
+      const item = readScheduleForm();
+      const existingIndex = schedules.findIndex((schedule) =>
+        schedule.name === item.name && schedule.deadline === item.deadline
+      );
+      if (existingIndex >= 0) {
+        schedules[existingIndex] = { ...item, id: schedules[existingIndex].id };
+      } else {
+        schedules.push(item);
+      }
+      saveSchedules();
+      renderSchedules();
+      document.getElementById("copyState").textContent = `${item.name} 일정을 업데이트했습니다.`;
+    }
+
+    function deleteSchedule(id) {
+      const before = schedules.length;
+      schedules = schedules.filter((item) => item.id !== id);
+      if (schedules.length !== before) {
+        saveSchedules();
+        renderSchedules();
+        document.getElementById("copyState").textContent = "일정을 삭제했습니다.";
+      }
+    }
+
+    function applyScheduleToCalculator(id) {
+      const item = schedules.find((schedule) => schedule.id === id);
+      if (!item) return;
+      document.getElementById("baseHours").value = String(item.remainingHours);
+      document.getElementById("condition").value = String(item.conditionDelay);
+      document.getElementById("dailyHours").value = String(item.dailyHours);
+      document.getElementById("deadline").value = item.deadline || "";
+      document.getElementById("startDate").valueAsDate = new Date();
+      document.getElementById("projectPrice").value = "0";
+      if (item.type === "확정") {
+        document.getElementById("rush").value = "1.2";
+      }
+      calculate();
+      document.getElementById("copyState").textContent = `${item.name} 일정을 계산 기준에 적용했습니다.`;
+    }
+
+    function scheduleSummaryText() {
+      return sortedSchedules().map((item) => {
+        const status = scheduleStatus(item);
+        return [
+          `${item.name} (${item.type})`,
+          `마감: ${item.deadline || "미정"}`,
+          `상태: ${status.text}`,
+          `남은 시간: ${scheduleAdjustedHours(item).toFixed(1)}시간`,
+          `진행률: ${item.progress}%`,
+          `남은 작업: ${item.notes || "-"}`
+        ].join(" / ");
+      }).join("\n");
+    }
+
+    async function copyScheduleSummary() {
+      const text = scheduleSummaryText() || "등록된 일정이 없습니다.";
+      try {
+        await navigator.clipboard.writeText(text);
+        document.getElementById("copyState").textContent = "일정 요약을 클립보드에 복사했습니다.";
+      } catch {
+        document.getElementById("copyState").textContent = text;
+      }
+    }
+
+    function currentControlState() {
+      const controlState = {};
+      controls.forEach((id) => {
+        controlState[id] = document.getElementById(id).value;
+      });
+      return controlState;
+    }
+
+    async function exportBackup() {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        controls: currentControlState(),
+        services,
+        schedules
+      };
+      const text = JSON.stringify(payload);
+      try {
+        await navigator.clipboard.writeText(text);
+        document.getElementById("copyState").textContent = "백업 데이터를 클립보드에 복사했습니다. 휴대폰에서 백업 가져오기에 붙여넣으면 됩니다.";
+      } catch {
+        document.getElementById("copyState").textContent = text;
+      }
+    }
+
+    function importBackup() {
+      const text = window.prompt("백업 복사로 만든 데이터를 붙여넣어주세요.");
+      if (!text) return;
+      try {
+        const parsed = JSON.parse(text);
+        if (!parsed || typeof parsed !== "object") throw new Error("Invalid backup");
+
+        if (parsed.controls) {
+          controls.forEach((id) => {
+            if (parsed.controls[id] !== undefined) {
+              document.getElementById(id).value = id === "condition"
+                ? normalizeConditionDelay(parsed.controls[id])
+                : parsed.controls[id];
+            }
+          });
+        }
+        if (Array.isArray(parsed.services)) {
+          services = servicesSeed.map((seed) => {
+            const existing = parsed.services.find((item) => item.id === seed.id);
+            return existing ? { ...seed, ...existing, plans: seed.plans } : seed;
+          });
+        }
+        if (Array.isArray(parsed.schedules)) {
+          schedules = parsed.schedules;
+          saveSchedules();
+        }
+
+        saveState();
+        renderServices();
+        renderSchedules();
+        calculate();
+        document.getElementById("copyState").textContent = "백업 데이터를 가져왔습니다.";
+      } catch {
+        document.getElementById("copyState").textContent = "백업 데이터를 읽지 못했습니다. 복사한 내용이 잘렸는지 확인해주세요.";
+      }
+    }
+
+    function setDefaultDates() {
+      const today = new Date();
+      const start = document.getElementById("startDate");
+      const deadline = document.getElementById("deadline");
+      if (!start.value) start.valueAsDate = today;
+      if (!deadline.value) deadline.valueAsDate = addDays(today, 7);
+    }
+
+    function renderServices() {
+      const container = document.getElementById("services");
+      container.innerHTML = "";
+
+      services.forEach((service) => {
+        const row = document.createElement("div");
+        row.className = `service-row ${service.enabled ? "" : "is-off"}`;
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = service.enabled;
+        checkbox.setAttribute("aria-label", `${service.name} 사용`);
+        checkbox.addEventListener("change", () => {
+          service.enabled = checkbox.checked;
+          renderServices();
+          calculate();
+        });
+
+        const name = document.createElement("div");
+        name.className = "service-name";
+        name.innerHTML = `<strong>${service.name}</strong><span>${service.note}</span>`;
+
+        const plan = document.createElement("select");
+        plan.setAttribute("aria-label", `${service.name} 플랜`);
+        service.plans.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.id;
+          option.textContent = item.label;
+          plan.appendChild(option);
+        });
+        plan.value = service.planId;
+        plan.disabled = !service.enabled;
+        plan.addEventListener("change", () => {
+          service.planId = plan.value;
+          renderServices();
+          calculate();
+        });
+
+        const customWrap = document.createElement("div");
+        customWrap.className = "compact-input";
+        const customInput = document.createElement("input");
+        customInput.type = "number";
+        customInput.min = "0";
+        customInput.step = "1000";
+        customInput.placeholder = "직접 원화";
+        customInput.value = service.customKrw || "";
+        customInput.disabled = !service.enabled || !getSelectedPlan(service).custom;
+        customInput.setAttribute("aria-label", `${service.name} 직접 입력 원화`);
+        customInput.addEventListener("input", () => {
+          service.customKrw = Number(customInput.value) || 0;
+          calculate();
+        });
+        const share = document.createElement("select");
+        share.setAttribute("aria-label", `${service.name} 비용 분담`);
+        [1, 2, 3].forEach((count) => {
+          const option = document.createElement("option");
+          option.value = String(count);
+          option.textContent = count === 1 ? "혼자 부담" : `${count}명 분담`;
+          share.appendChild(option);
+        });
+        share.value = String(service.share || 1);
+        share.disabled = !service.enabled;
+        share.addEventListener("change", () => {
+          service.share = Number(share.value);
+          calculate();
+        });
+        customWrap.append(customInput, share);
+
+        const cost = document.createElement("div");
+        cost.className = "service-cost";
+        cost.dataset.serviceCost = service.id;
+
+        row.append(checkbox, name, plan, customWrap, cost);
+        container.appendChild(row);
+      });
+      updateServiceCosts();
+    }
+
+    function updateServiceCosts() {
+      services.forEach((service) => {
+        const cost = document.querySelector(`[data-service-cost="${service.id}"]`);
+        if (!cost) return;
+        const planMeta = getSelectedPlan(service);
+        const costValue = monthlyKrw(service);
+        const sourceLabel = planMeta.custom
+          ? "직접 입력"
+          : planMeta.krwMonthly !== undefined
+            ? `${formatKrw(planMeta.krwMonthly)} · ${planMeta.billing}`
+            : `$${planMeta.usdMonthly}/월 · ${planMeta.billing}`;
+        cost.innerHTML = `${formatKrw(costValue)}<small>${sourceLabel}</small>`;
+      });
+    }
+
+    function calculate() {
+      updateServiceCosts();
+      const total = services.reduce((sum, service) => sum + monthlyKrw(service), 0);
+      const enabledCount = services.filter((service) => service.enabled).length;
+      const monthlyProjects = Math.max(1, numberValue("monthlyProjects"));
+      const monthlyHours = Math.max(1, numberValue("monthlyHours"));
+      const baseHours = Math.max(0, numberValue("baseHours"));
+      const conditionDelay = Math.max(0, numberValue("condition"));
+      const difficulty = Math.max(0, numberValue("difficulty"));
+      const rush = Math.max(0, numberValue("rush"));
+      const hourlyRate = Math.max(0, numberValue("hourlyRate"));
+      const projectPrice = Math.max(0, numberValue("projectPrice"));
+      const dailyHours = Math.max(0.5, numberValue("dailyHours"));
+
+      const costPerProject = total / monthlyProjects;
+      const costPerHour = total / monthlyHours;
+      const adjustedHours = baseHours + conditionDelay;
+      const laborCost = adjustedHours * hourlyRate * difficulty * rush;
+      const toolAllocation = adjustedHours * costPerHour;
+      const recommendedQuote = roundToThousand(laborCost + toolAllocation);
+      const minimumQuote = roundToThousand((adjustedHours * hourlyRate) + toolAllocation);
+      const premiumQuote = roundToThousand(recommendedQuote * 1.25);
+      const actualHourly = adjustedHours > 0 && projectPrice > 0 ? projectPrice / adjustedHours : 0;
+      const quoteGap = projectPrice > 0 ? projectPrice - recommendedQuote : 0;
+
+      document.getElementById("monthlyTotal").textContent = formatKrw(total);
+      document.getElementById("selectedCount").textContent = `선택된 서비스 ${enabledCount}개`;
+      document.getElementById("costPerProject").textContent = formatKrw(costPerProject);
+      document.getElementById("costPerHour").textContent = formatKrw(costPerHour);
+      document.getElementById("adjustedHours").textContent = `${adjustedHours.toFixed(1)}시간`;
+      document.getElementById("recommendedQuote").textContent = formatKrw(recommendedQuote);
+      document.getElementById("laborCost").textContent = formatKrw(laborCost);
+      document.getElementById("toolAllocation").textContent = formatKrw(toolAllocation);
+      document.getElementById("minimumQuote").textContent = formatKrw(minimumQuote);
+      document.getElementById("premiumQuote").textContent = formatKrw(premiumQuote);
+      document.getElementById("actualHourly").textContent = actualHourly ? `${formatKrw(actualHourly)}/시간` : "-";
+      document.getElementById("quoteGap").textContent = projectPrice
+        ? `${quoteGap >= 0 ? "+" : "-"}${formatKrw(Math.abs(quoteGap))}`
+        : "-";
+
+      const startDate = parseDateInput(document.getElementById("startDate").value);
+      const deadline = parseDateInput(document.getElementById("deadline").value);
+      const daysNeeded = Math.ceil(adjustedHours / dailyHours);
+      const finishDate = startDate ? addDays(startDate, Math.max(0, daysNeeded - 1)) : null;
+      const reportDate = deadline ? addDays(deadline, -2) : null;
+      const status = document.getElementById("deadlineStatus");
+
+      document.getElementById("finishDate").textContent = formatDate(finishDate);
+      document.getElementById("reportDate").textContent = formatDate(reportDate);
+
+      status.className = "status";
+      if (!deadline || !finishDate) {
+        status.textContent = "마감일 없음";
+      } else {
+        const remaining = diffDays(new Date(finishDate), new Date(deadline));
+        if (remaining >= 2) {
+          status.textContent = "여유";
+          status.classList.add("ok");
+        } else if (remaining >= 0) {
+          status.textContent = "빠듯함";
+          status.classList.add("warn");
+        } else {
+          status.textContent = "지연 위험";
+          status.classList.add("danger");
+        }
+      }
+
+      saveState();
+    }
+
+    function buildSummaryText() {
+      const selected = services
+        .filter((service) => service.enabled)
+        .map((service) => {
+          const plan = getSelectedPlan(service);
+          return `- ${service.name}: ${plan.label} / 월 ${formatKrw(monthlyKrw(service))}`;
+        })
+        .join("\n");
+
+      return [
+        "조쉬 계산 요약",
+        selected,
+        `월 구독비 추정: ${document.getElementById("monthlyTotal").textContent}`,
+        `건당 프로그램비: ${document.getElementById("costPerProject").textContent}`,
+        `시간당 프로그램비: ${document.getElementById("costPerHour").textContent}`,
+        `보정 편집시간: ${document.getElementById("adjustedHours").textContent}`,
+        `권장 견적가: ${document.getElementById("recommendedQuote").textContent}`,
+        `실제 시급: ${document.getElementById("actualHourly").textContent}`,
+        `권장가 대비: ${document.getElementById("quoteGap").textContent}`,
+        `2일 전 보고일: ${document.getElementById("reportDate").textContent}`,
+        `마감 상태: ${document.getElementById("deadlineStatus").textContent}`
+      ].filter(Boolean).join("\n");
+    }
+
+    async function copySummary() {
+      const summary = buildSummaryText();
+      try {
+        await navigator.clipboard.writeText(summary);
+        document.getElementById("copyState").textContent = "요약을 클립보드에 복사했습니다.";
+      } catch {
+        document.getElementById("copyState").textContent = summary;
+      }
+    }
+
+    function resetAll() {
+      localStorage.removeItem(STORAGE_KEY);
+      services = structuredClone(servicesSeed);
+      document.getElementById("exchangeRate").value = "1400";
+      document.getElementById("feeRate").value = "10";
+      document.getElementById("monthlyProjects").value = "8";
+      document.getElementById("monthlyHours").value = "120";
+      document.getElementById("baseHours").value = "10";
+      document.getElementById("hourlyRate").value = "30000";
+      document.getElementById("projectPrice").value = "0";
+      document.getElementById("condition").value = "0.5";
+      document.getElementById("difficulty").value = "1.25";
+      document.getElementById("rush").value = "1";
+      document.getElementById("dailyHours").value = "4";
+      document.getElementById("startDate").value = "";
+      document.getElementById("deadline").value = "";
+      setDefaultDates();
+      renderServices();
+      calculate();
+      document.getElementById("copyState").textContent = "초기값으로 되돌렸습니다.";
+    }
+
+    function applyCurrentInputs() {
+      calculate();
+      document.getElementById("copyState").textContent = "계산 기준을 적용했습니다.";
+    }
+
+    function handleControlKeydown(event) {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      event.currentTarget.blur();
+      applyCurrentInputs();
+    }
+
+    function applySeriEp2Preset() {
+      document.getElementById("baseHours").value = "4";
+      document.getElementById("hourlyRate").value = "30000";
+      document.getElementById("projectPrice").value = "0";
+      document.getElementById("condition").value = "2";
+      document.getElementById("difficulty").value = "1.25";
+      document.getElementById("rush").value = "1.2";
+      document.getElementById("dailyHours").value = "4";
+      document.getElementById("startDate").value = "2026-07-08";
+      document.getElementById("deadline").value = "2026-07-08";
+
+      services = services.map((service) => {
+        if (["envato", "artlist", "epidemic"].includes(service.id)) {
+          return { ...service, enabled: true };
+        }
+        return service;
+      });
+
+      renderServices();
+      calculate();
+      const seriSchedule = {
+        id: "seri-ep2",
+        name: "세리님 채널 EP2",
+        type: "희망",
+        deadline: "2026-07-08",
+        remainingHours: 4,
+        conditionDelay: 2,
+        dailyHours: 4,
+        progress: 30,
+        notes: "보이스 조정, 배경음악 찾기, 1차본 전달"
+      };
+      const existingIndex = schedules.findIndex((item) => item.id === seriSchedule.id);
+      if (existingIndex >= 0) {
+        schedules[existingIndex] = seriSchedule;
+      } else {
+        schedules.push(seriSchedule);
+      }
+      saveSchedules();
+      renderSchedules();
+      document.getElementById("copyState").textContent =
+        "세리님 채널 EP2: 컷편집/타임라인 30%, 남은 작업은 보이스 조정과 배경음악 찾기. 컨디션 많이 나쁨 기준 4시간 작업은 +2시간 지연을 붙여 6시간으로 보정됩니다.";
+    }
+
+    function applyOutsourcePreset() {
+      document.getElementById("baseHours").value = "24";
+      document.getElementById("hourlyRate").value = "30000";
+      document.getElementById("projectPrice").value = "500000";
+      document.getElementById("condition").value = "0";
+      document.getElementById("difficulty").value = "1.8";
+      document.getElementById("rush").value = "1";
+      document.getElementById("dailyHours").value = "8";
+
+      const today = new Date();
+      document.getElementById("startDate").valueAsDate = today;
+      document.getElementById("deadline").valueAsDate = addDays(today, 2);
+
+      services = services.map((service) => {
+        if (service.id === "envato") return { ...service, enabled: true, planId: "core_monthly" };
+        if (service.id === "cutback") return { ...service, enabled: true, planId: "basic" };
+        return service;
+      });
+
+      renderServices();
+      calculate();
+      document.getElementById("copyState").textContent =
+        "정기 외주 예시: 3캠 롱폼 1개, 관련 숏폼 8개, 썸네일 1개, 수정 2회, 3영업일, 실제 수령액 50만원.";
+    }
+
+    function init() {
+      loadState();
+      loadSchedules();
+      setDefaultDates();
+      renderServices();
+      renderSchedules();
+      controls.forEach((id) => {
+        const control = document.getElementById(id);
+        control.addEventListener("input", calculate);
+        control.addEventListener("change", calculate);
+        control.addEventListener("keydown", handleControlKeydown);
+      });
+      document.getElementById("addScheduleButton").addEventListener("click", addSchedule);
+      document.getElementById("copyScheduleButton").addEventListener("click", copyScheduleSummary);
+      [
+        "scheduleName",
+        "scheduleType",
+        "scheduleDeadline",
+        "scheduleHours",
+        "scheduleCondition",
+        "scheduleDailyHours",
+        "scheduleProgress",
+        "scheduleNotes"
+      ].forEach((id) => {
+        document.getElementById(id).addEventListener("keydown", (event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          addSchedule();
+        });
+      });
+      document.getElementById("presetSeriEp2Button").addEventListener("click", applySeriEp2Preset);
+      document.getElementById("applyButton").addEventListener("click", applyCurrentInputs);
+      document.getElementById("exportButton").addEventListener("click", exportBackup);
+      document.getElementById("importButton").addEventListener("click", importBackup);
+      document.getElementById("copyButton").addEventListener("click", copySummary);
+      document.getElementById("resetButton").addEventListener("click", resetAll);
+      document.getElementById("presetOutsourceButton").addEventListener("click", applyOutsourcePreset);
+      calculate();
+    }
+
+    init();
+
+    if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>

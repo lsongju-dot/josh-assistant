@@ -1,0 +1,19 @@
+{
+  "name": "조쉬 - 스케줄 및 금전 비서",
+  "short_name": "조쉬",
+  "description": "영상 편집 일정, 마감 위험도, 구독비, 견적가를 관리하는 개인 비서",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#1c6b5a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
