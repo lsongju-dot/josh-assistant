@@ -1154,6 +1154,7 @@
     const STORAGE_KEY = "josh-subscription-calculator-v2";
     const SCHEDULE_STORAGE_KEY = "josh-schedules-v1";
     const PROFIT_STORAGE_KEY = "josh-profit-v1";
+    const SETTINGS_VERSION = 2;
 
     const servicesSeed = [
       {
@@ -1254,7 +1255,7 @@
         name: "Epidemic",
         note: "음원/상업용",
         enabled: true,
-        planId: "commercial_annual",
+        planId: "pro_annual",
         customKrw: 0,
         share: 1,
         plans: [
@@ -1402,7 +1403,7 @@
       controls.forEach((id) => {
         controlState[id] = document.getElementById(id).value;
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ controls: controlState, services }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SETTINGS_VERSION, controls: controlState, services }));
     }
 
     function loadState() {
@@ -1421,9 +1422,18 @@
           });
         }
         if (Array.isArray(parsed.services)) {
+          const needsEpidemicMigration = !parsed.version || Number(parsed.version) < 2;
           services = servicesSeed.map((seed) => {
             const existing = parsed.services.find((item) => item.id === seed.id);
             const merged = existing ? { ...seed, ...existing, plans: seed.plans } : seed;
+            if (
+              seed.id === "epidemic" &&
+              needsEpidemicMigration &&
+              existing &&
+              existing.planId === "commercial_annual"
+            ) {
+              return { ...merged, planId: "pro_annual" };
+            }
             if (
               seed.id === "cutback" &&
               existing &&
