@@ -211,7 +211,7 @@
 
     .service-row {
       display: grid;
-      grid-template-columns: 28px minmax(110px, 150px) minmax(180px, 1fr) minmax(96px, 110px) minmax(108px, 132px);
+      grid-template-columns: 28px minmax(110px, 150px) minmax(180px, 1fr) minmax(118px, 132px) minmax(118px, 150px);
       gap: 10px;
       align-items: center;
       padding: 12px;
@@ -263,7 +263,8 @@
       gap: 4px;
     }
 
-    .compact-input input {
+    .compact-input input,
+    .compact-input select {
       height: 32px;
       font-size: 13px;
     }
@@ -923,7 +924,7 @@
         <div class="panel-body">
           <div class="summary-grid">
             <div class="metric wide">
-              <span>월 구독비 추정</span>
+              <span>월 프로그램 원가 추정</span>
               <strong id="monthlyTotal">0원</strong>
               <em id="selectedCount">선택된 서비스 0개</em>
             </div>
@@ -1123,14 +1124,19 @@
               <em>입력 단가 기준</em>
             </div>
             <div class="metric">
-              <span>월 고정비</span>
+              <span>실제 월 고정비</span>
               <strong id="monthlyFixedCost">0원</strong>
-              <em>구독비 + 기타 고정비</em>
+              <em>실지출 구독비 + 기타</em>
+            </div>
+            <div class="metric">
+              <span>견적용 사용료</span>
+              <strong id="allocatedToolCost">0원</strong>
+              <em>회사 제공/비현금 원가</em>
             </div>
             <div class="metric">
               <span>세전 순수익</span>
               <strong id="netBeforeTax">0원</strong>
-              <em>매출 - 고정비</em>
+              <em>매출 - 실제 고정비</em>
             </div>
             <div class="metric">
               <span>세후 보수 추정</span>
@@ -1218,6 +1224,7 @@
         note: "Premiere/Photoshop",
         enabled: true,
         planId: "premiere_photoshop",
+        expenseType: "allocation",
         customKrw: 0,
         share: 1,
         plans: [
@@ -1366,6 +1373,28 @@
       const exchangeRate = numberValue("exchangeRate");
       const feeRate = numberValue("feeRate") / 100;
       return (plan.usdMonthly * exchangeRate * (1 + feeRate)) / share;
+    }
+
+    function serviceExpenseType(service) {
+      return service.expenseType === "allocation" ? "allocation" : "cash";
+    }
+
+    function toolCostTotal() {
+      return services.reduce((sum, service) => sum + monthlyKrw(service), 0);
+    }
+
+    function cashSubscriptionTotal() {
+      return services.reduce((sum, service) => {
+        if (serviceExpenseType(service) !== "cash") return sum;
+        return sum + monthlyKrw(service);
+      }, 0);
+    }
+
+    function allocatedSubscriptionTotal() {
+      return services.reduce((sum, service) => {
+        if (serviceExpenseType(service) !== "allocation") return sum;
+        return sum + monthlyKrw(service);
+      }, 0);
     }
 
     function saveState() {
@@ -1748,8 +1777,7 @@
     }
 
     function calculateFixedCostTotal() {
-      const subscriptionTotal = services.reduce((sum, service) => sum + monthlyKrw(service), 0);
-      return subscriptionTotal + Math.max(0, getNumericControl("extraFixedCost"));
+      return cashSubscriptionTotal() + Math.max(0, getNumericControl("extraFixedCost"));
     }
 
     function calculateProfit() {
@@ -1758,15 +1786,17 @@
       const hospitalOneCamRevenue = getNumericControl("hospitalOneCamCount") * getNumericControl("hospitalOneCamPrice");
       const revenue = missRevenue + hospitalTwoCamRevenue + hospitalOneCamRevenue + Math.max(0, getNumericControl("extraIncome"));
       const fixedCost = calculateFixedCostTotal();
+      const allocatedCost = allocatedSubscriptionTotal();
       const netBeforeTax = revenue - fixedCost;
       const reserveRate = Math.max(0, getNumericControl("taxReserveRate")) / 100;
       const netAfterReserve = netBeforeTax - Math.max(0, revenue * reserveRate);
 
       document.getElementById("monthlyRevenue").textContent = formatKrw(revenue);
       document.getElementById("monthlyFixedCost").textContent = formatKrw(fixedCost);
+      document.getElementById("allocatedToolCost").textContent = formatKrw(allocatedCost);
       document.getElementById("netBeforeTax").textContent = formatKrw(netBeforeTax);
       document.getElementById("netAfterReserve").textContent = formatKrw(netAfterReserve);
-      document.getElementById("profitNote").textContent = `미스 멍디 ${formatKrw(missRevenue)}, 병원 2캠 ${formatKrw(hospitalTwoCamRevenue)}, 병원 1캠 ${formatKrw(hospitalOneCamRevenue)} 기준입니다.`;
+      document.getElementById("profitNote").textContent = `미스 멍디 ${formatKrw(missRevenue)}, 병원 2캠 ${formatKrw(hospitalTwoCamRevenue)}, 병원 1캠 ${formatKrw(hospitalOneCamRevenue)} 기준입니다. 견적용 사용료 ${formatKrw(allocatedCost)}는 실제 순수익 차감에서 제외했습니다.`;
       saveProfitState();
     }
 
@@ -1894,7 +1924,24 @@
           service.share = Number(share.value);
           calculate();
         });
-        customWrap.append(customInput, share);
+        const expenseType = document.createElement("select");
+        expenseType.setAttribute("aria-label", `${service.name} 비용 성격`);
+        [
+          { value: "cash", label: "실지출" },
+          { value: "allocation", label: "견적용" }
+        ].forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.value;
+          option.textContent = item.label;
+          expenseType.appendChild(option);
+        });
+        expenseType.value = serviceExpenseType(service);
+        expenseType.disabled = !service.enabled;
+        expenseType.addEventListener("change", () => {
+          service.expenseType = expenseType.value;
+          calculate();
+        });
+        customWrap.append(customInput, share, expenseType);
 
         const cost = document.createElement("div");
         cost.className = "service-cost";
@@ -1917,13 +1964,16 @@
           : planMeta.krwMonthly !== undefined
             ? `${formatKrw(planMeta.krwMonthly)} · ${planMeta.billing}`
             : `$${planMeta.usdMonthly}/월 · ${planMeta.billing}`;
-        cost.innerHTML = `${formatKrw(costValue)}<small>${sourceLabel}</small>`;
+        const expenseLabel = serviceExpenseType(service) === "allocation" ? "견적용" : "실지출";
+        cost.innerHTML = `${formatKrw(costValue)}<small>${sourceLabel} · ${expenseLabel}</small>`;
       });
     }
 
     function calculate() {
       updateServiceCosts();
-      const total = services.reduce((sum, service) => sum + monthlyKrw(service), 0);
+      const total = toolCostTotal();
+      const cashCost = cashSubscriptionTotal();
+      const allocatedCost = allocatedSubscriptionTotal();
       const enabledCount = services.filter((service) => service.enabled).length;
       const monthlyProjects = Math.max(1, numberValue("monthlyProjects"));
       const monthlyHours = Math.max(1, numberValue("monthlyHours"));
@@ -1947,7 +1997,7 @@
       const quoteGap = projectPrice > 0 ? projectPrice - recommendedQuote : 0;
 
       document.getElementById("monthlyTotal").textContent = formatKrw(total);
-      document.getElementById("selectedCount").textContent = `선택된 서비스 ${enabledCount}개`;
+      document.getElementById("selectedCount").textContent = `선택 ${enabledCount}개 · 실지출 ${formatKrw(cashCost)} / 견적용 ${formatKrw(allocatedCost)}`;
       document.getElementById("costPerProject").textContent = formatKrw(costPerProject);
       document.getElementById("costPerHour").textContent = formatKrw(costPerHour);
       if (document.getElementById("monthlyRevenue")) calculateProfit();
@@ -1997,14 +2047,15 @@
         .filter((service) => service.enabled)
         .map((service) => {
           const plan = getSelectedPlan(service);
-          return `- ${service.name}: ${plan.label} / 월 ${formatKrw(monthlyKrw(service))}`;
+          const expenseLabel = serviceExpenseType(service) === "allocation" ? "견적용" : "실지출";
+          return `- ${service.name}: ${plan.label} / 월 ${formatKrw(monthlyKrw(service))} / ${expenseLabel}`;
         })
         .join("\n");
 
       return [
         "조쉬 계산 요약",
         selected,
-        `월 구독비 추정: ${document.getElementById("monthlyTotal").textContent}`,
+        `월 프로그램 원가 추정: ${document.getElementById("monthlyTotal").textContent}`,
         `건당 프로그램비: ${document.getElementById("costPerProject").textContent}`,
         `시간당 프로그램비: ${document.getElementById("costPerHour").textContent}`,
         `보정 편집시간: ${document.getElementById("adjustedHours").textContent}`,
