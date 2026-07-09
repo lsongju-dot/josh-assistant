@@ -827,7 +827,7 @@
           <div class="field-grid">
             <div class="field">
               <label for="exchangeRate">환율</label>
-              <input id="exchangeRate" type="number" min="1" step="1" value="1400">
+              <input id="exchangeRate" type="number" min="1" step="1" value="1500">
             </div>
             <div class="field">
               <label for="feeRate">세금/카드수수료 %</label>
@@ -839,7 +839,7 @@
             </div>
             <div class="field">
               <label for="monthlyHours">월 편집 가능 시간</label>
-              <input id="monthlyHours" type="number" min="1" step="1" value="120">
+              <input id="monthlyHours" type="number" min="1" step="1" value="65">
             </div>
           </div>
 
@@ -886,7 +886,7 @@
             </div>
             <div class="field">
               <label for="dailyHours">하루 가능 시간</label>
-              <input id="dailyHours" type="number" min="0.5" step="0.5" value="4">
+              <input id="dailyHours" type="number" min="0.5" step="0.5" value="3">
             </div>
             <div class="field">
               <label for="startDate">시작일</label>
@@ -1038,7 +1038,7 @@
             </div>
             <div class="field">
               <label for="scheduleDailyHours">오늘 가능</label>
-              <input id="scheduleDailyHours" type="number" min="0.5" step="0.5" value="4">
+              <input id="scheduleDailyHours" type="number" min="0.5" step="0.5" value="3">
             </div>
             <div class="field">
               <label for="scheduleProgress">진행률 %</label>
@@ -1154,7 +1154,7 @@
     const STORAGE_KEY = "josh-subscription-calculator-v2";
     const SCHEDULE_STORAGE_KEY = "josh-schedules-v1";
     const PROFIT_STORAGE_KEY = "josh-profit-v1";
-    const SETTINGS_VERSION = 2;
+    const SETTINGS_VERSION = 3;
 
     const servicesSeed = [
       {
@@ -1293,7 +1293,7 @@
         deadline: "2026-07-08",
         remainingHours: 4,
         conditionDelay: 2,
-        dailyHours: 4,
+        dailyHours: 3,
         progress: 30,
         notes: "보이스 조정, 배경음악 찾기, 1차본 전달"
       }
@@ -1412,11 +1412,15 @@
       try {
         const parsed = JSON.parse(stored);
         if (parsed.controls) {
+          const needsCapacityMigration = !parsed.version || Number(parsed.version) < 3;
           controls.forEach((id) => {
             if (parsed.controls[id] !== undefined) {
-              const value = id === "condition"
+              let value = id === "condition"
                 ? normalizeConditionDelay(parsed.controls[id])
                 : parsed.controls[id];
+              if (needsCapacityMigration && id === "exchangeRate" && String(value) === "1400") value = "1500";
+              if (needsCapacityMigration && id === "monthlyHours" && String(value) === "120") value = "65";
+              if (needsCapacityMigration && id === "dailyHours" && String(value) === "4") value = "3";
               document.getElementById(id).value = value;
             }
           });
@@ -1464,7 +1468,7 @@
             deadline: item.deadline || "",
             remainingHours: Number(item.remainingHours) || 0,
             conditionDelay: Number(item.conditionDelay) || 0,
-            dailyHours: Number(item.dailyHours) || 4,
+            dailyHours: Number(item.dailyHours) || 3,
             progress: Math.min(100, Math.max(0, Number(item.progress) || 0)),
             notes: item.notes || ""
           }));
@@ -2090,17 +2094,17 @@
     function resetAll() {
       localStorage.removeItem(STORAGE_KEY);
       services = structuredClone(servicesSeed);
-      document.getElementById("exchangeRate").value = "1400";
+      document.getElementById("exchangeRate").value = "1500";
       document.getElementById("feeRate").value = "10";
       document.getElementById("monthlyProjects").value = "8";
-      document.getElementById("monthlyHours").value = "120";
+      document.getElementById("monthlyHours").value = "65";
       document.getElementById("baseHours").value = "10";
       document.getElementById("hourlyRate").value = "30000";
       document.getElementById("projectPrice").value = "0";
       document.getElementById("condition").value = "0.5";
       document.getElementById("difficulty").value = "1.25";
       document.getElementById("rush").value = "1";
-      document.getElementById("dailyHours").value = "4";
+      document.getElementById("dailyHours").value = "3";
       document.getElementById("startDate").value = "";
       document.getElementById("deadline").value = "";
       setDefaultDates();
@@ -2128,7 +2132,7 @@
       document.getElementById("condition").value = "2";
       document.getElementById("difficulty").value = "1.25";
       document.getElementById("rush").value = "1.2";
-      document.getElementById("dailyHours").value = "4";
+      document.getElementById("dailyHours").value = "3";
       document.getElementById("startDate").value = "2026-07-08";
       document.getElementById("deadline").value = "2026-07-08";
 
@@ -2148,7 +2152,7 @@
         deadline: "2026-07-08",
         remainingHours: 4,
         conditionDelay: 2,
-        dailyHours: 4,
+        dailyHours: 3,
         progress: 30,
         notes: "보이스 조정, 배경음악 찾기, 1차본 전달"
       };
@@ -2166,13 +2170,13 @@
     }
 
     function applyOutsourcePreset() {
-      document.getElementById("baseHours").value = "24";
+      document.getElementById("baseHours").value = "15";
       document.getElementById("hourlyRate").value = "30000";
       document.getElementById("projectPrice").value = "500000";
       document.getElementById("condition").value = "0";
       document.getElementById("difficulty").value = "1.8";
       document.getElementById("rush").value = "1";
-      document.getElementById("dailyHours").value = "8";
+      document.getElementById("dailyHours").value = "5";
 
       const today = new Date();
       document.getElementById("startDate").valueAsDate = today;
