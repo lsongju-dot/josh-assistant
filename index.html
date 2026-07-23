@@ -830,7 +830,7 @@
               <input id="exchangeRate" type="number" min="1" step="1" value="1500">
             </div>
             <div class="field">
-              <label for="feeRate">세금/카드수수료 %</label>
+              <label for="feeRate">해외결제 부가비용 %</label>
               <input id="feeRate" type="number" min="0" step="0.1" value="10">
             </div>
             <div class="field">
@@ -1112,8 +1112,8 @@
               <input id="extraFixedCost" type="number" min="0" step="10000" value="0">
             </div>
             <div class="field">
-              <label for="taxReserveRate">세금 유보 %</label>
-              <input id="taxReserveRate" type="number" min="0" max="50" step="1" value="10">
+              <label for="taxReserveRate">원천징수율 %</label>
+              <input id="taxReserveRate" type="number" min="0" max="50" step="0.1" value="3.3">
             </div>
           </div>
 
@@ -1139,9 +1139,14 @@
               <em>매출 - 실제 고정비</em>
             </div>
             <div class="metric">
-              <span>세후 보수 추정</span>
+              <span>원천징수 예상액</span>
+              <strong id="taxWithheld">0원</strong>
+              <em>매출 × 원천징수율</em>
+            </div>
+            <div class="metric">
+              <span>예상 실수령 순수익</span>
               <strong id="netAfterReserve">0원</strong>
-              <em>세금 유보 반영</em>
+              <em>매출 - 원천징수 - 실제 고정비</em>
             </div>
           </div>
           <div class="profit-note" id="profitNote">미스 멍디는 장기계약 할인 단가, 병원건은 단건 단가로 분리해 계산합니다.</div>
@@ -1155,6 +1160,7 @@
     const SCHEDULE_STORAGE_KEY = "josh-schedules-v1";
     const PROFIT_STORAGE_KEY = "josh-profit-v1";
     const SETTINGS_VERSION = 3;
+    const PROFIT_SETTINGS_VERSION = 2;
 
     const servicesSeed = [
       {
@@ -1773,16 +1779,26 @@
       if (!stored) return;
       try {
         const parsed = JSON.parse(stored);
+        const needsWithholdingMigration =
+          !parsed._version || Number(parsed._version) < PROFIT_SETTINGS_VERSION;
         profitControls.forEach((id) => {
           if (parsed[id] !== undefined && document.getElementById(id)) {
-            document.getElementById(id).value = parsed[id];
+            let value = parsed[id];
+            if (
+              needsWithholdingMigration &&
+              id === "taxReserveRate" &&
+              String(value) === "10"
+            ) {
+              value = "3.3";
+            }
+            document.getElementById(id).value = value;
           }
         });
       } catch {}
     }
 
     function saveProfitState() {
-      const state = {};
+      const state = { _version: PROFIT_SETTINGS_VERSION };
       profitControls.forEach((id) => {
         const element = document.getElementById(id);
         if (element) state[id] = element.value;
@@ -1803,14 +1819,16 @@
       const allocatedCost = allocatedSubscriptionTotal();
       const netBeforeTax = revenue - fixedCost;
       const reserveRate = Math.max(0, getNumericControl("taxReserveRate")) / 100;
-      const netAfterReserve = netBeforeTax - Math.max(0, revenue * reserveRate);
+      const taxWithheld = Math.max(0, revenue * reserveRate);
+      const netAfterReserve = netBeforeTax - taxWithheld;
 
       document.getElementById("monthlyRevenue").textContent = formatKrw(revenue);
       document.getElementById("monthlyFixedCost").textContent = formatKrw(fixedCost);
       document.getElementById("allocatedToolCost").textContent = formatKrw(allocatedCost);
       document.getElementById("netBeforeTax").textContent = formatKrw(netBeforeTax);
+      document.getElementById("taxWithheld").textContent = formatKrw(taxWithheld);
       document.getElementById("netAfterReserve").textContent = formatKrw(netAfterReserve);
-      document.getElementById("profitNote").textContent = `미스 멍디 ${formatKrw(missRevenue)}, 병원 2캠 ${formatKrw(hospitalTwoCamRevenue)}, 병원 1캠 ${formatKrw(hospitalOneCamRevenue)} 기준입니다. 견적용 사용료 ${formatKrw(allocatedCost)}는 실제 순수익 차감에서 제외했습니다.`;
+      document.getElementById("profitNote").textContent = `미스 멍디 ${formatKrw(missRevenue)}, 병원 2캠 ${formatKrw(hospitalTwoCamRevenue)}, 병원 1캠 ${formatKrw(hospitalOneCamRevenue)} 기준입니다. 원천징수 ${formatKrw(taxWithheld)}를 매출에서 차감했고, 견적용 사용료 ${formatKrw(allocatedCost)}는 실제 순수익 차감에서 제외했습니다.`;
       saveProfitState();
     }
 
@@ -2093,6 +2111,7 @@
 
     function resetAll() {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(PROFIT_STORAGE_KEY);
       services = structuredClone(servicesSeed);
       document.getElementById("exchangeRate").value = "1500";
       document.getElementById("feeRate").value = "10";
@@ -2107,6 +2126,7 @@
       document.getElementById("dailyHours").value = "3";
       document.getElementById("startDate").value = "";
       document.getElementById("deadline").value = "";
+      document.getElementById("taxReserveRate").value = "3.3";
       setDefaultDates();
       renderServices();
       calculate();
