@@ -933,10 +933,10 @@
       </form>
       <div class="auth-account" id="signedInAuth" hidden>
         <span class="auth-email" id="authUserEmail"></span>
-        <button class="button" id="syncSchedulesButton" type="button">일정 동기화</button>
+        <button class="button" id="syncSchedulesButton" type="button">전체 동기화</button>
         <button class="button" id="signOutButton" type="button">로그아웃</button>
       </div>
-      <p class="auth-status" id="authStatus" role="status">로그인하면 일정이 PC와 모바일에 자동 동기화됩니다.</p>
+      <p class="auth-status" id="authStatus" role="status">로그인하면 일정과 금액 정보가 PC·모바일에 자동 동기화됩니다.</p>
     </section>
 
     <main class="layout">
@@ -1118,7 +1118,7 @@
           </div>
 
           <div class="divider"></div>
-          <div class="empty-state" id="copyState">선택한 플랜과 직접 입력 금액은 이 브라우저에 자동 저장됩니다.</div>
+          <div class="empty-state" id="copyState">입력값은 이 브라우저에 저장되며, 로그인하면 다른 기기에도 동기화됩니다.</div>
         </div>
       </aside>
 
@@ -1283,6 +1283,8 @@
     const PROFIT_STORAGE_KEY = "josh-profit-v1";
     const SETTINGS_VERSION = 4;
     const PROFIT_SETTINGS_VERSION = 2;
+    const FINANCE_STATE_PREFIX = "JOSH_MONTHLY_PLAN_V1:";
+    const SUBSCRIPTION_STATE_PREFIX = "JOSH_SERVICE_V1:";
     const SUPABASE_URL = "https://jseugxgiqyfrnbegddso.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tc3t0Bb0efB8qktlAo7Sw_y2peMEot";
     const APP_URL = "https://lsongju-dot.github.io/josh-assistant/";
@@ -1292,6 +1294,11 @@
 
     let authSession = null;
     let scheduleSyncInProgress = false;
+    let financeSyncInProgress = false;
+    let cloudStateLoading = false;
+    let financeSaveTimer = null;
+    let financeRecordId = null;
+    const subscriptionRowsByService = new Map();
 
     const servicesSeed = [
       {
@@ -1541,6 +1548,7 @@
         controlState[id] = document.getElementById(id).value;
       });
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SETTINGS_VERSION, controls: controlState, services }));
+      queueCloudFinanceSave();
     }
 
     function loadState() {
@@ -1635,8 +1643,13 @@
       document.getElementById("signedInAuth").hidden = !user;
       document.getElementById("authUserEmail").textContent = user?.email || "";
       if (!user) {
-        setAuthStatus("로그인하면 일정이 PC와 모바일에 자동 동기화됩니다.");
+        setAuthStatus("로그인하면 일정과 금액 정보가 PC·모바일에 자동 동기화됩니다.");
       }
+    }
+
+    function clearCloudReferences() {
+      financeRecordId = null;
+      subscriptionRowsByService.clear();
     }
 
     function isUuid(value) {
@@ -1702,9 +1715,9 @@
         timezone: "Asia/Seoul",
         weekday_start: "20:00",
         weekday_end: "01:00",
-        daily_focus_hours: 3,
+        daily_focus_hours: Math.max(0.5, numberValue("dailyHours")) || 3,
         target_price_per_minute: 20000,
-        withholding_rate: 3.3,
+        withholding_rate: Math.max(0, getNumericControl("taxReserveRate")) || 3.3,
         updated_at: new Date().toISOString()
       }, { onConflict: "user_id" });
       if (error) console.warn("User settings sync failed:", error.message);
@@ -1729,7 +1742,7 @@
 
     async function syncSchedulesWithCloud() {
       const userId = authSession?.user?.id;
-      if (!supabaseClient || !userId || scheduleSyncInProgress) return;
+      if (!supabaseClient || !userId || scheduleSyncInProgress) return false;
       scheduleSyncInProgress = true;
       setAuthStatus("일정을 동기화하는 중입니다.");
       try {
@@ -1756,10 +1769,247 @@
         renderSchedules();
         renderCalendar();
         setAuthStatus(`일정 ${schedules.length}건 동기화 완료`, "ok");
+        return true;
       } catch (error) {
         setAuthStatus(`동기화 실패: ${error.message || "잠시 후 다시 시도해 주세요."}`, "error");
+        return false;
       } finally {
         scheduleSyncInProgress = false;
+      }
+    }
+
+    function readControlState() {
+      const state = {};
+      controls.forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) state[id] = element.value;
+      });
+      return state;
+    }
+
+    function readProfitState() {
+      const state = {};
+      profitControls.forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) state[id] = element.value;
+      });
+      return state;
+    }
+
+    function applyControlValues(values, ids) {
+      if (!values || typeof values !== "object") return;
+      ids.forEach((id) => {
+        const element = document.getElementById(id);
+        if (element && values[id] !== undefined) {
+          element.value = values[id];
+        }
+      });
+    }
+
+    function financeDescription() {
+      return FINANCE_STATE_PREFIX + JSON.stringify({
+        version: 1,
+        controls: readControlState(),
+        profit: readProfitState()
+      });
+    }
+
+    function parsePrefixedJson(value, prefix) {
+      if (typeof value !== "string" || !value.startsWith(prefix)) return null;
+      try {
+        return JSON.parse(value.slice(prefix.length));
+      } catch {
+        return null;
+      }
+    }
+
+    function monthlyRevenueValue() {
+      return (
+        getNumericControl("missPackageCount") * getNumericControl("missPackagePrice") +
+        getNumericControl("hospitalTwoCamCount") * getNumericControl("hospitalTwoCamPrice") +
+        getNumericControl("hospitalOneCamCount") * getNumericControl("hospitalOneCamPrice") +
+        Math.max(0, getNumericControl("extraIncome"))
+      );
+    }
+
+    function financeCloudPayload(userId) {
+      const todayKey = sameDateKey(new Date());
+      return {
+        user_id: userId,
+        project_id: null,
+        description: financeDescription(),
+        gross_krw: Math.round(monthlyRevenueValue()),
+        withholding_rate: Math.max(0, getNumericControl("taxReserveRate")) || 3.3,
+        received_at: `${todayKey.slice(0, 7)}-01`
+      };
+    }
+
+    function subscriptionCloudPayload(service, userId) {
+      const plan = getSelectedPlan(service);
+      return {
+        user_id: userId,
+        name: service.name,
+        monthly_cost_krw: Math.round(monthlyKrw(service)),
+        billing_cycle: plan.billing === "연" ? "annual" : "monthly",
+        notes: SUBSCRIPTION_STATE_PREFIX + JSON.stringify({
+          serviceId: service.id,
+          planId: service.planId,
+          enabled: Boolean(service.enabled),
+          customKrw: Number(service.customKrw) || 0,
+          share: Math.max(1, Number(service.share) || 1),
+          expenseType: serviceExpenseType(service)
+        }),
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    function applyCloudSubscriptions(rows) {
+      const remoteByService = new Map();
+      rows.forEach((row) => {
+        const config = parsePrefixedJson(row.notes, SUBSCRIPTION_STATE_PREFIX);
+        if (config?.serviceId) remoteByService.set(config.serviceId, { row, config });
+      });
+      if (!remoteByService.size) return false;
+
+      services = servicesSeed.map((seed) => {
+        const current = services.find((service) => service.id === seed.id) || seed;
+        const remote = remoteByService.get(seed.id);
+        if (!remote) return { ...seed, ...current, plans: seed.plans };
+        subscriptionRowsByService.set(seed.id, remote.row.id);
+        return {
+          ...seed,
+          ...current,
+          ...remote.config,
+          plans: seed.plans
+        };
+      });
+      return remoteByService.size >= servicesSeed.length;
+    }
+
+    function applyCloudFinanceRecord(record) {
+      const state = parsePrefixedJson(record?.description, FINANCE_STATE_PREFIX);
+      if (!state) return false;
+      financeRecordId = record.id;
+      applyControlValues(state.controls, controls);
+      applyControlValues(state.profit, profitControls);
+      return true;
+    }
+
+    async function persistFinanceRecord() {
+      const userId = authSession?.user?.id;
+      if (!supabaseClient || !userId) return;
+      const payload = financeCloudPayload(userId);
+      const query = financeRecordId
+        ? supabaseClient.from("income_records").update(payload).eq("id", financeRecordId)
+        : supabaseClient.from("income_records").insert(payload);
+      const { data, error } = await query.select().single();
+      if (error) throw error;
+      financeRecordId = data.id;
+    }
+
+    async function persistSubscriptionRows() {
+      const userId = authSession?.user?.id;
+      if (!supabaseClient || !userId) return;
+      for (const service of services) {
+        const payload = subscriptionCloudPayload(service, userId);
+        const rowId = subscriptionRowsByService.get(service.id);
+        const query = rowId
+          ? supabaseClient.from("subscriptions").update(payload).eq("id", rowId)
+          : supabaseClient.from("subscriptions").insert(payload);
+        const { data, error } = await query.select().single();
+        if (error) throw error;
+        subscriptionRowsByService.set(service.id, data.id);
+      }
+    }
+
+    async function saveFinancialDataToCloud({ quiet = false } = {}) {
+      if (!authSession || cloudStateLoading || financeSyncInProgress) return false;
+      financeSyncInProgress = true;
+      if (!quiet) setAuthStatus("금액 정보를 저장하는 중입니다.");
+      try {
+        await Promise.all([
+          persistFinanceRecord(),
+          persistSubscriptionRows(),
+          seedCloudSettings()
+        ]);
+        setAuthStatus("금액 정보 자동 저장 완료", "ok");
+        return true;
+      } catch (error) {
+        setAuthStatus(`금액 정보 저장 실패: ${error.message}. 이 기기에는 저장됐습니다.`, "error");
+        return false;
+      } finally {
+        financeSyncInProgress = false;
+      }
+    }
+
+    function queueCloudFinanceSave() {
+      if (!authSession || cloudStateLoading) return;
+      window.clearTimeout(financeSaveTimer);
+      financeSaveTimer = window.setTimeout(() => {
+        saveFinancialDataToCloud({ quiet: true });
+      }, 800);
+    }
+
+    async function syncFinancialData() {
+      const userId = authSession?.user?.id;
+      if (!supabaseClient || !userId || financeSyncInProgress) return false;
+      financeSyncInProgress = true;
+      cloudStateLoading = true;
+      setAuthStatus("구독·수입 정보를 동기화하는 중입니다.");
+      try {
+        const [incomeResult, subscriptionResult] = await Promise.all([
+          supabaseClient
+            .from("income_records")
+            .select("*")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false }),
+          supabaseClient
+            .from("subscriptions")
+            .select("*")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: true })
+        ]);
+        if (incomeResult.error) throw incomeResult.error;
+        if (subscriptionResult.error) throw subscriptionResult.error;
+
+        const financeRecord = (incomeResult.data || []).find((row) =>
+          typeof row.description === "string" && row.description.startsWith(FINANCE_STATE_PREFIX)
+        );
+        const subscriptionRows = (subscriptionResult.data || []).filter((row) =>
+          typeof row.notes === "string" && row.notes.startsWith(SUBSCRIPTION_STATE_PREFIX)
+        );
+        const loadedFinance = applyCloudFinanceRecord(financeRecord);
+        const loadedSubscriptions = applyCloudSubscriptions(subscriptionRows);
+
+        renderServices();
+        calculate();
+        cloudStateLoading = false;
+
+        if (!loadedFinance) await persistFinanceRecord();
+        if (!loadedSubscriptions) await persistSubscriptionRows();
+        await seedCloudSettings();
+        setAuthStatus("일정·구독·수입 정보 동기화 완료", "ok");
+        return true;
+      } catch (error) {
+        setAuthStatus(`금액 정보 동기화 실패: ${error.message || "잠시 후 다시 시도해 주세요."}`, "error");
+        return false;
+      } finally {
+        cloudStateLoading = false;
+        financeSyncInProgress = false;
+      }
+    }
+
+    async function syncAllCloudData({ pushLocal = false } = {}) {
+      if (pushLocal) {
+        window.clearTimeout(financeSaveTimer);
+        await saveFinancialDataToCloud();
+      }
+      const scheduleOk = await syncSchedulesWithCloud();
+      const financeOk = await syncFinancialData();
+      if (scheduleOk && financeOk) {
+        setAuthStatus("일정·구독·수입 정보 동기화 완료", "ok");
+      } else {
+        setAuthStatus("일부 정보 동기화에 실패했습니다. 이 기기의 저장값은 유지됩니다.", "error");
       }
     }
 
@@ -1798,6 +2048,7 @@
         return;
       }
       authSession = null;
+      clearCloudReferences();
       renderAuthState();
     }
 
@@ -1815,18 +2066,20 @@
         authSession = data.session;
         renderAuthState();
         if (authSession) {
-          await seedCloudSettings();
-          await syncSchedulesWithCloud();
+          await syncAllCloudData();
         }
       }
 
       supabaseClient.auth.onAuthStateChange((event, session) => {
+        const previousUserId = authSession?.user?.id;
         authSession = session;
+        if (previousUserId && previousUserId !== session?.user?.id) {
+          clearCloudReferences();
+        }
         renderAuthState();
         if (event === "SIGNED_IN" && session) {
           window.setTimeout(async () => {
-            await seedCloudSettings();
-            await syncSchedulesWithCloud();
+            await syncAllCloudData();
           }, 0);
         }
       });
@@ -2170,6 +2423,7 @@
         if (element) state[id] = element.value;
       });
       localStorage.setItem(PROFIT_STORAGE_KEY, JSON.stringify(state));
+      queueCloudFinanceSave();
     }
 
     function calculateFixedCostTotal() {
@@ -2629,7 +2883,9 @@
       document.getElementById("resetButton").addEventListener("click", resetAll);
       document.getElementById("presetOutsourceButton").addEventListener("click", applyOutsourcePreset);
       document.getElementById("signedOutAuth").addEventListener("submit", sendLoginLink);
-      document.getElementById("syncSchedulesButton").addEventListener("click", syncSchedulesWithCloud);
+      document.getElementById("syncSchedulesButton").addEventListener("click", () => {
+        syncAllCloudData({ pushLocal: true });
+      });
       document.getElementById("signOutButton").addEventListener("click", signOut);
       calculate();
       initializeAuth();
