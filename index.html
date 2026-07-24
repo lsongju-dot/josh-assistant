@@ -32,6 +32,22 @@
       box-sizing: border-box;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -47,7 +63,7 @@
 
     .shell {
       display: grid;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto auto 1fr;
       min-height: 100vh;
     }
 
@@ -117,6 +133,60 @@
     select:focus-visible {
       outline: 3px solid rgba(28, 107, 90, 0.28);
       outline-offset: 2px;
+    }
+
+    .auth-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 28px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-soft);
+    }
+
+    .auth-form,
+    .auth-account {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .auth-form input {
+      width: min(280px, 42vw);
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .auth-email {
+      max-width: 280px;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .auth-status {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      text-align: right;
+    }
+
+    .auth-status.ok {
+      color: var(--ok);
+    }
+
+    .auth-status.error {
+      color: var(--danger);
     }
 
     .layout {
@@ -683,6 +753,28 @@
         justify-content: center;
       }
 
+      .auth-strip {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px 16px;
+      }
+
+      .auth-form,
+      .auth-account {
+        width: 100%;
+      }
+
+      .auth-form input {
+        width: auto;
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .auth-status {
+        text-align: left;
+      }
+
       .layout {
         grid-template-columns: 1fr;
         padding: 12px;
@@ -747,6 +839,21 @@
 
       .button {
         min-height: 42px;
+      }
+
+      .auth-form,
+      .auth-account {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .auth-account {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+      }
+
+      .auth-form .button,
+      .auth-account .button {
+        min-width: max-content;
       }
 
       input,
@@ -817,6 +924,20 @@
         <button class="button primary" id="copyButton" type="button">요약 복사</button>
       </div>
     </header>
+
+    <section class="auth-strip" aria-label="계정 및 일정 동기화">
+      <form class="auth-form" id="signedOutAuth">
+        <label class="sr-only" for="authEmail">이메일</label>
+        <input id="authEmail" type="email" autocomplete="email" placeholder="이메일 주소" required>
+        <button class="button primary" id="sendLoginLinkButton" type="submit">로그인 링크 받기</button>
+      </form>
+      <div class="auth-account" id="signedInAuth" hidden>
+        <span class="auth-email" id="authUserEmail"></span>
+        <button class="button" id="syncSchedulesButton" type="button">일정 동기화</button>
+        <button class="button" id="signOutButton" type="button">로그아웃</button>
+      </div>
+      <p class="auth-status" id="authStatus" role="status">로그인하면 일정이 PC와 모바일에 자동 동기화됩니다.</p>
+    </section>
 
     <main class="layout">
       <section class="panel settings-panel" aria-labelledby="settingsTitle">
@@ -1155,19 +1276,29 @@
     </main>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const STORAGE_KEY = "josh-subscription-calculator-v2";
     const SCHEDULE_STORAGE_KEY = "josh-schedules-v1";
     const PROFIT_STORAGE_KEY = "josh-profit-v1";
-    const SETTINGS_VERSION = 3;
+    const SETTINGS_VERSION = 4;
     const PROFIT_SETTINGS_VERSION = 2;
+    const SUPABASE_URL = "https://jseugxgiqyfrnbegddso.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tc3t0Bb0efB8qktlAo7Sw_y2peMEot";
+    const APP_URL = "https://lsongju-dot.github.io/josh-assistant/";
+    const supabaseClient = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+      : null;
+
+    let authSession = null;
+    let scheduleSyncInProgress = false;
 
     const servicesSeed = [
       {
         id: "envato",
         name: "Envato",
         note: "템플릿/소스",
-        enabled: true,
+        enabled: false,
         planId: "core_monthly",
         customKrw: 0,
         share: 1,
@@ -1267,7 +1398,7 @@
         plans: [
           { id: "personal_annual", label: "Personal 연간 대략", usdMonthly: 9.99, billing: "연" },
           { id: "commercial_annual", label: "Commercial 연간 대략", usdMonthly: 24.99, billing: "연" },
-          { id: "pro_annual", label: "Pro/Team 연간 대략", usdMonthly: 49.99, billing: "연" },
+          { id: "pro_annual", label: "Pro 연간", krwMonthly: 26000, billing: "연" },
           { id: "custom", label: "직접 입력", custom: true, billing: "월" }
         ]
       }
@@ -1433,9 +1564,13 @@
         }
         if (Array.isArray(parsed.services)) {
           const needsEpidemicMigration = !parsed.version || Number(parsed.version) < 2;
+          const needsSubscriptionMigration = !parsed.version || Number(parsed.version) < 4;
           services = servicesSeed.map((seed) => {
             const existing = parsed.services.find((item) => item.id === seed.id);
             const merged = existing ? { ...seed, ...existing, plans: seed.plans } : seed;
+            if (seed.id === "envato" && needsSubscriptionMigration) {
+              return { ...merged, enabled: false };
+            }
             if (
               seed.id === "epidemic" &&
               needsEpidemicMigration &&
@@ -1486,6 +1621,215 @@
 
     function saveSchedules() {
       localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(schedules));
+    }
+
+    function setAuthStatus(message, tone = "") {
+      const status = document.getElementById("authStatus");
+      status.textContent = message;
+      status.className = `auth-status${tone ? ` ${tone}` : ""}`;
+    }
+
+    function renderAuthState() {
+      const user = authSession?.user || null;
+      document.getElementById("signedOutAuth").hidden = Boolean(user);
+      document.getElementById("signedInAuth").hidden = !user;
+      document.getElementById("authUserEmail").textContent = user?.email || "";
+      if (!user) {
+        setAuthStatus("로그인하면 일정이 PC와 모바일에 자동 동기화됩니다.");
+      }
+    }
+
+    function isUuid(value) {
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value));
+    }
+
+    function parseCloudNotes(value) {
+      if (!value) return { text: "", conditionDelay: 0, dailyHours: 3 };
+      try {
+        const parsed = JSON.parse(value);
+        if (parsed && typeof parsed === "object") {
+          return {
+            text: parsed.text || "",
+            conditionDelay: Number(parsed.conditionDelay) || 0,
+            dailyHours: Number(parsed.dailyHours) || 3
+          };
+        }
+      } catch {
+        return { text: String(value), conditionDelay: 0, dailyHours: 3 };
+      }
+      return { text: String(value), conditionDelay: 0, dailyHours: 3 };
+    }
+
+    function cloudProjectToSchedule(row) {
+      const notes = parseCloudNotes(row.notes);
+      return {
+        id: row.id,
+        name: row.name || "이름 없는 작업",
+        type: row.project_type || "희망",
+        deadline: row.deadline ? String(row.deadline).slice(0, 10) : "",
+        remainingHours: Number(row.remaining_hours) || 0,
+        conditionDelay: notes.conditionDelay,
+        dailyHours: notes.dailyHours,
+        progress: Math.min(100, Math.max(0, Number(row.progress) || 0)),
+        notes: notes.text
+      };
+    }
+
+    function scheduleToCloudProject(item, userId) {
+      return {
+        user_id: userId,
+        name: item.name,
+        project_type: item.type,
+        status: Number(item.progress) >= 100 ? "completed" : "editing",
+        deadline: item.deadline ? `${item.deadline}T12:00:00+09:00` : null,
+        progress: Number(item.progress) || 0,
+        remaining_hours: Number(item.remainingHours) || 0,
+        notes: JSON.stringify({
+          text: item.notes || "",
+          conditionDelay: Number(item.conditionDelay) || 0,
+          dailyHours: Number(item.dailyHours) || 3
+        }),
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    async function seedCloudSettings() {
+      const userId = authSession?.user?.id;
+      if (!supabaseClient || !userId) return;
+      const { error } = await supabaseClient.from("user_settings").upsert({
+        user_id: userId,
+        display_name: "송주",
+        timezone: "Asia/Seoul",
+        weekday_start: "20:00",
+        weekday_end: "01:00",
+        daily_focus_hours: 3,
+        target_price_per_minute: 20000,
+        withholding_rate: 3.3,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "user_id" });
+      if (error) console.warn("User settings sync failed:", error.message);
+    }
+
+    async function uploadSchedule(item) {
+      const userId = authSession?.user?.id;
+      if (!supabaseClient || !userId || !item) return null;
+      const payload = scheduleToCloudProject(item, userId);
+      const query = isUuid(item.id)
+        ? supabaseClient.from("projects").upsert({ ...payload, id: item.id }, { onConflict: "id" })
+        : supabaseClient.from("projects").insert(payload);
+      const { data, error } = await query.select().single();
+      if (error) throw error;
+      if (data?.id && data.id !== item.id) {
+        const index = schedules.findIndex((schedule) => schedule.id === item.id);
+        if (index >= 0) schedules[index] = cloudProjectToSchedule(data);
+        saveSchedules();
+      }
+      return data;
+    }
+
+    async function syncSchedulesWithCloud() {
+      const userId = authSession?.user?.id;
+      if (!supabaseClient || !userId || scheduleSyncInProgress) return;
+      scheduleSyncInProgress = true;
+      setAuthStatus("일정을 동기화하는 중입니다.");
+      try {
+        const { data: remoteProjects, error } = await supabaseClient
+          .from("projects")
+          .select("*")
+          .eq("user_id", userId)
+          .order("deadline", { ascending: true, nullsFirst: false });
+        if (error) throw error;
+
+        if (remoteProjects.length > 0) {
+          schedules = remoteProjects.map(cloudProjectToSchedule);
+        } else if (schedules.length > 0) {
+          const payload = schedules.map((item) => scheduleToCloudProject(item, userId));
+          const { data: uploaded, error: uploadError } = await supabaseClient
+            .from("projects")
+            .insert(payload)
+            .select();
+          if (uploadError) throw uploadError;
+          schedules = (uploaded || []).map(cloudProjectToSchedule);
+        }
+
+        saveSchedules();
+        renderSchedules();
+        renderCalendar();
+        setAuthStatus(`일정 ${schedules.length}건 동기화 완료`, "ok");
+      } catch (error) {
+        setAuthStatus(`동기화 실패: ${error.message || "잠시 후 다시 시도해 주세요."}`, "error");
+      } finally {
+        scheduleSyncInProgress = false;
+      }
+    }
+
+    async function sendLoginLink(event) {
+      event.preventDefault();
+      if (!supabaseClient) {
+        setAuthStatus("로그인 모듈을 불러오지 못했습니다. 인터넷 연결 후 새로고침해 주세요.", "error");
+        return;
+      }
+      const emailInput = document.getElementById("authEmail");
+      const button = document.getElementById("sendLoginLinkButton");
+      const email = emailInput.value.trim();
+      if (!email) return;
+      button.disabled = true;
+      setAuthStatus("로그인 링크를 보내는 중입니다.");
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: APP_URL,
+          shouldCreateUser: true
+        }
+      });
+      button.disabled = false;
+      if (error) {
+        setAuthStatus(`로그인 링크 전송 실패: ${error.message}`, "error");
+        return;
+      }
+      setAuthStatus("이메일로 보낸 로그인 링크를 눌러 주세요.", "ok");
+    }
+
+    async function signOut() {
+      if (!supabaseClient) return;
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        setAuthStatus(`로그아웃 실패: ${error.message}`, "error");
+        return;
+      }
+      authSession = null;
+      renderAuthState();
+    }
+
+    async function initializeAuth() {
+      renderAuthState();
+      if (!supabaseClient) {
+        setAuthStatus("로그인 모듈을 불러오지 못했습니다. 인터넷 연결 후 새로고침해 주세요.", "error");
+        return;
+      }
+
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) {
+        setAuthStatus(`로그인 확인 실패: ${error.message}`, "error");
+      } else {
+        authSession = data.session;
+        renderAuthState();
+        if (authSession) {
+          await seedCloudSettings();
+          await syncSchedulesWithCloud();
+        }
+      }
+
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        authSession = session;
+        renderAuthState();
+        if (event === "SIGNED_IN" && session) {
+          window.setTimeout(async () => {
+            await seedCloudSettings();
+            await syncSchedulesWithCloud();
+          }, 0);
+        }
+      });
     }
 
     function escapeHtml(value) {
@@ -1624,13 +1968,15 @@
       };
     }
 
-    function addSchedule() {
+    async function addSchedule() {
       const item = readScheduleForm();
       const existingIndex = schedules.findIndex((schedule) =>
         schedule.name === item.name && schedule.deadline === item.deadline
       );
+      let savedItem = item;
       if (existingIndex >= 0) {
         schedules[existingIndex] = { ...item, id: schedules[existingIndex].id };
+        savedItem = schedules[existingIndex];
       } else {
         schedules.push(item);
       }
@@ -1638,9 +1984,17 @@
       renderSchedules();
       renderCalendar();
       document.getElementById("copyState").textContent = `${item.name} 일정을 업데이트했습니다.`;
+      if (authSession) {
+        try {
+          await uploadSchedule(savedItem);
+          setAuthStatus("일정 변경사항을 동기화했습니다.", "ok");
+        } catch (error) {
+          setAuthStatus(`클라우드 저장 실패: ${error.message}. 이 기기에는 저장됐습니다.`, "error");
+        }
+      }
     }
 
-    function deleteSchedule(id) {
+    async function deleteSchedule(id) {
       const before = schedules.length;
       schedules = schedules.filter((item) => item.id !== id);
       if (schedules.length !== before) {
@@ -1648,6 +2002,18 @@
         renderSchedules();
         renderCalendar();
         document.getElementById("copyState").textContent = "일정을 삭제했습니다.";
+        if (authSession && isUuid(id)) {
+          const { error } = await supabaseClient
+            .from("projects")
+            .delete()
+            .eq("id", id)
+            .eq("user_id", authSession.user.id);
+          if (error) {
+            setAuthStatus(`클라우드 삭제 실패: ${error.message}. 이 기기에서는 삭제됐습니다.`, "error");
+          } else {
+            setAuthStatus("일정 삭제를 동기화했습니다.", "ok");
+          }
+        }
       }
     }
 
@@ -2262,7 +2628,11 @@
       document.getElementById("copyButton").addEventListener("click", copySummary);
       document.getElementById("resetButton").addEventListener("click", resetAll);
       document.getElementById("presetOutsourceButton").addEventListener("click", applyOutsourcePreset);
+      document.getElementById("signedOutAuth").addEventListener("submit", sendLoginLink);
+      document.getElementById("syncSchedulesButton").addEventListener("click", syncSchedulesWithCloud);
+      document.getElementById("signOutButton").addEventListener("click", signOut);
       calculate();
+      initializeAuth();
     }
 
     init();
