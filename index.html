@@ -504,6 +504,80 @@
       grid-column: 1 / -1;
     }
 
+    .today-panel {
+      grid-column: 1 / -1;
+    }
+
+    .today-toolbar {
+      display: grid;
+      grid-template-columns: minmax(160px, 220px) minmax(140px, 180px) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .today-toolbar .button {
+      justify-content: center;
+    }
+
+    .today-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .today-plan {
+      display: grid;
+      gap: 0;
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .today-plan-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 14px;
+      align-items: center;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .today-plan-main {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .today-plan-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .today-plan-title strong {
+      overflow-wrap: anywhere;
+    }
+
+    .today-plan-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .today-plan-hours {
+      min-width: 82px;
+      text-align: right;
+      font-size: 17px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .today-overflow {
+      margin-top: 10px;
+    }
+
     .schedule-form {
       display: grid;
       grid-template-columns: minmax(160px, 1.2fr) repeat(5, minmax(110px, 1fr)) minmax(160px, 1.4fr);
@@ -1170,6 +1244,10 @@
         order: -2;
       }
 
+      .today-panel {
+        order: -3;
+      }
+
       .schedule-panel {
         order: -1;
       }
@@ -1181,6 +1259,20 @@
       .schedule-form,
       .schedule-list {
         grid-template-columns: 1fr;
+      }
+
+      .today-toolbar,
+      .today-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .today-plan-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .today-plan-row .button {
+        grid-column: 1 / -1;
+        width: 100%;
       }
 
       .longform-layout {
@@ -1361,6 +1453,44 @@
     </section>
 
     <main class="layout">
+      <section class="panel today-panel" aria-labelledby="todayPlanTitle">
+        <div class="panel-header">
+          <h2 id="todayPlanTitle">오늘 작업</h2>
+        </div>
+        <div class="panel-body">
+          <div class="today-toolbar">
+            <div class="field">
+              <label for="todayPlanDate">작업일</label>
+              <input id="todayPlanDate" type="date">
+            </div>
+            <div class="field">
+              <label for="todayFocusHours">집중 가능 시간</label>
+              <input id="todayFocusHours" type="number" min="0.5" max="12" step="0.5" value="3">
+            </div>
+            <button class="button" id="copyTodayPlanButton" type="button">오늘 계획 복사</button>
+          </div>
+          <div class="today-summary">
+            <div class="metric">
+              <span>배정 시간</span>
+              <strong id="todayAllocatedHours">0시간</strong>
+              <em id="todayCapacityNote">집중 가능 3시간</em>
+            </div>
+            <div class="metric">
+              <span>오늘 작업</span>
+              <strong id="todayTaskCount">0건</strong>
+              <em id="todayPriorityNote">확정 마감 우선</em>
+            </div>
+            <div class="metric">
+              <span>미배정 작업량</span>
+              <strong id="todayOverflowHours">0시간</strong>
+              <em id="todayOverflowNote">오늘 이후로 이월</em>
+            </div>
+          </div>
+          <div class="today-plan" id="todayPlanList"></div>
+          <div class="empty-state today-overflow" id="todayPlanStatus" role="status"></div>
+        </div>
+      </section>
+
       <section class="panel settings-panel" aria-labelledby="settingsTitle">
         <div class="panel-header">
           <h2 id="settingsTitle">계산 기준</h2>
@@ -1708,7 +1838,7 @@
           <div class="schedule-form">
             <div class="field">
               <label for="scheduleName">작업명</label>
-              <input id="scheduleName" type="text" value="세리님 채널 EP2">
+              <input id="scheduleName" type="text" placeholder="작업명을 입력하세요">
             </div>
             <div class="field">
               <label for="scheduleType">마감 구분</label>
@@ -1720,19 +1850,19 @@
             </div>
             <div class="field">
               <label for="scheduleDeadline">마감일</label>
-              <input id="scheduleDeadline" type="date" value="2026-07-08">
+              <input id="scheduleDeadline" type="date">
             </div>
             <div class="field">
               <label for="scheduleHours">남은 시간</label>
-              <input id="scheduleHours" type="number" min="0.5" step="0.5" value="4">
+              <input id="scheduleHours" type="number" min="0.5" step="0.5" value="3">
             </div>
             <div class="field">
               <label for="scheduleCondition">컨디션</label>
               <select id="scheduleCondition">
                 <option value="0">좋음</option>
-                <option value="0.5">보통</option>
+                <option value="0.5" selected>보통</option>
                 <option value="1">나쁨</option>
-                <option value="2" selected>많이 나쁨</option>
+                <option value="2">많이 나쁨</option>
               </select>
             </div>
             <div class="field">
@@ -1741,11 +1871,11 @@
             </div>
             <div class="field">
               <label for="scheduleProgress">진행률 %</label>
-              <input id="scheduleProgress" type="number" min="0" max="100" step="5" value="30">
+              <input id="scheduleProgress" type="number" min="0" max="100" step="5" value="0">
             </div>
             <div class="field">
               <label for="scheduleNotes">남은 작업</label>
-              <input id="scheduleNotes" type="text" value="보이스 조정, 배경음악 찾기, 1차본 전달">
+              <input id="scheduleNotes" type="text" placeholder="남은 작업을 입력하세요">
             </div>
             <button class="button primary" id="addScheduleButton" type="button">일정 추가</button>
             <button class="button" id="copyScheduleButton" type="button">일정 복사</button>
@@ -1860,6 +1990,7 @@
     const SCHEDULE_STORAGE_KEY = "josh-schedules-v1";
     const PROFIT_STORAGE_KEY = "josh-profit-v1";
     const TOPBAR_STORAGE_KEY = "josh-topbar-expanded-v1";
+    const TODAY_PLAN_STORAGE_KEY = "josh-today-plan-v1";
     const SETTINGS_VERSION = 5;
     const PROFIT_SETTINGS_VERSION = 2;
     const FINANCE_STATE_PREFIX = "JOSH_MONTHLY_PLAN_V1:";
@@ -2045,19 +2176,7 @@
     let referenceAnalysisState = null;
     let selectedReferenceFile = null;
 
-    const schedulesSeed = [
-      {
-        id: "seri-ep2",
-        name: "세리님 채널 EP2",
-        type: "희망",
-        deadline: "2026-07-08",
-        remainingHours: 4,
-        conditionDelay: 2,
-        dailyHours: 3,
-        progress: 30,
-        notes: "보이스 조정, 배경음악 찾기, 1차본 전달"
-      }
-    ];
+    const schedulesSeed = [];
 
     let schedules = structuredClone(schedulesSeed);
     let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -3757,9 +3876,178 @@
       });
     }
 
+    function todayPlanSettings() {
+      const dateControl = document.getElementById("todayPlanDate");
+      const hoursControl = document.getElementById("todayFocusHours");
+      return {
+        date: dateControl.value || sameDateKey(new Date()),
+        focusHours: Math.max(0.5, Math.min(12, Number(hoursControl.value) || 3))
+      };
+    }
+
+    function saveTodayPlanSettings() {
+      try {
+        localStorage.setItem(TODAY_PLAN_STORAGE_KEY, JSON.stringify(todayPlanSettings()));
+      } catch {
+        // The plan still works when browser storage is unavailable.
+      }
+    }
+
+    function loadTodayPlanSettings() {
+      const dateControl = document.getElementById("todayPlanDate");
+      const hoursControl = document.getElementById("todayFocusHours");
+      dateControl.value = sameDateKey(new Date());
+      hoursControl.value = "3";
+      try {
+        const saved = JSON.parse(localStorage.getItem(TODAY_PLAN_STORAGE_KEY) || "null");
+        if (saved && Number(saved.focusHours) > 0) {
+          hoursControl.value = String(Math.min(12, Number(saved.focusHours)));
+        }
+      } catch {
+        hoursControl.value = "3";
+      }
+    }
+
+    function todayPriorityRank(item, planDate) {
+      const deadline = parseDateInput(item.deadline);
+      const deadlineTime = deadline ? deadline.getTime() : Number.MAX_SAFE_INTEGER;
+      const daysLeft = deadline
+        ? Math.ceil((deadline.getTime() - planDate.getTime()) / (24 * 60 * 60 * 1000))
+        : Number.MAX_SAFE_INTEGER;
+      const urgencyRank = daysLeft < 0 ? 0 : daysLeft <= 1 ? 1 : daysLeft <= 3 ? 2 : 3;
+      const typeRank = item.type === "확정" ? 0 : 1;
+      return { urgencyRank, typeRank, deadlineTime };
+    }
+
+    function buildTodayPlan() {
+      const settings = todayPlanSettings();
+      const planDate = parseDateInput(settings.date) || new Date();
+      planDate.setHours(0, 0, 0, 0);
+      const candidates = schedules
+        .filter((item) =>
+          Number(item.progress) < 100 &&
+          item.type !== "수정대기" &&
+          scheduleAdjustedHours(item) > 0
+        )
+        .sort((a, b) => {
+          const aRank = todayPriorityRank(a, planDate);
+          const bRank = todayPriorityRank(b, planDate);
+          if (aRank.urgencyRank !== bRank.urgencyRank) return aRank.urgencyRank - bRank.urgencyRank;
+          if (aRank.typeRank !== bRank.typeRank) return aRank.typeRank - bRank.typeRank;
+          if (aRank.deadlineTime !== bRank.deadlineTime) return aRank.deadlineTime - bRank.deadlineTime;
+          return scheduleAdjustedHours(a) - scheduleAdjustedHours(b);
+        });
+
+      let available = settings.focusHours;
+      const blocks = [];
+      candidates.forEach((item) => {
+        if (available <= 0) return;
+        const remaining = scheduleAdjustedHours(item);
+        const allocated = Math.min(remaining, available);
+        blocks.push({ item, allocated });
+        available = Math.max(0, available - allocated);
+      });
+
+      const totalRemaining = candidates.reduce((sum, item) => sum + scheduleAdjustedHours(item), 0);
+      const allocatedHours = blocks.reduce((sum, block) => sum + block.allocated, 0);
+      return {
+        ...settings,
+        planDate,
+        blocks,
+        candidateCount: candidates.length,
+        allocatedHours,
+        overflowHours: Math.max(0, totalRemaining - allocatedHours),
+        waitingCount: schedules.filter((item) => item.type === "수정대기" && Number(item.progress) < 100).length
+      };
+    }
+
+    function todayDeadlineLabel(item, planDate) {
+      const deadline = parseDateInput(item.deadline);
+      if (!deadline) return "마감 미정";
+      deadline.setHours(0, 0, 0, 0);
+      const daysLeft = Math.ceil((deadline - planDate) / (24 * 60 * 60 * 1000));
+      if (daysLeft < 0) return `${Math.abs(daysLeft)}일 지남`;
+      if (daysLeft === 0) return "오늘 마감";
+      if (daysLeft === 1) return "내일 마감";
+      return `${daysLeft}일 남음`;
+    }
+
+    function renderTodayPlan() {
+      const plan = buildTodayPlan();
+      const container = document.getElementById("todayPlanList");
+      document.getElementById("todayAllocatedHours").textContent = `${plan.allocatedHours.toFixed(1)}시간`;
+      document.getElementById("todayCapacityNote").textContent = `집중 가능 ${plan.focusHours.toFixed(1)}시간`;
+      document.getElementById("todayTaskCount").textContent = `${plan.blocks.length}건`;
+      document.getElementById("todayPriorityNote").textContent =
+        plan.candidateCount ? `대기 작업 ${plan.candidateCount}건 중 우선 배정` : "배정할 작업 없음";
+      document.getElementById("todayOverflowHours").textContent = `${plan.overflowHours.toFixed(1)}시간`;
+      document.getElementById("todayOverflowNote").textContent =
+        plan.overflowHours > 0 ? "오늘 이후로 이월" : "오늘 계획 안에 처리 가능";
+
+      if (!plan.blocks.length) {
+        container.innerHTML = "";
+        document.getElementById("todayPlanStatus").textContent =
+          plan.waitingCount
+            ? `직접 진행할 작업은 없습니다. 피드백 대기 ${plan.waitingCount}건이 있습니다.`
+            : "완료되지 않은 작업이 없습니다.";
+        return;
+      }
+
+      container.innerHTML = plan.blocks.map(({ item, allocated }) => `
+        <div class="today-plan-row">
+          <div class="today-plan-main">
+            <div class="today-plan-title">
+              <strong>${escapeHtml(item.name)}</strong>
+              <span class="chip ${scheduleTypeClass(item.type)}">${escapeHtml(item.type)}</span>
+              <span class="status ${todayDeadlineLabel(item, plan.planDate).includes("지남") ? "danger" : ""}">
+                ${escapeHtml(todayDeadlineLabel(item, plan.planDate))}
+              </span>
+            </div>
+            <div class="today-plan-note">${escapeHtml(item.notes || "남은 작업 메모 없음")}</div>
+          </div>
+          <div class="today-plan-hours">${allocated.toFixed(1)}시간</div>
+          <button class="button" type="button" data-today-apply="${escapeHtml(item.id)}">일정 열기</button>
+        </div>
+      `).join("");
+
+      container.querySelectorAll("[data-today-apply]").forEach((button) => {
+        button.addEventListener("click", () => applyScheduleToCalculator(button.dataset.todayApply));
+      });
+      const capacityGap = Math.max(0, plan.focusHours - plan.allocatedHours);
+      document.getElementById("todayPlanStatus").textContent =
+        capacityGap > 0
+          ? `${capacityGap.toFixed(1)}시간 여유가 있습니다.${plan.waitingCount ? ` 피드백 대기 ${plan.waitingCount}건.` : ""}`
+          : `${plan.allocatedHours.toFixed(1)}시간을 모두 배정했습니다.${plan.waitingCount ? ` 피드백 대기 ${plan.waitingCount}건.` : ""}`;
+    }
+
+    function todayPlanSummaryText() {
+      const plan = buildTodayPlan();
+      const lines = plan.blocks.map(({ item, allocated }, index) =>
+        `${index + 1}. ${item.name} · ${allocated.toFixed(1)}시간 · ${todayDeadlineLabel(item, plan.planDate)} · ${item.notes || "-"}`
+      );
+      return [
+        `${formatDate(plan.planDate)} 작업 계획`,
+        `집중 가능 ${plan.focusHours.toFixed(1)}시간 · 배정 ${plan.allocatedHours.toFixed(1)}시간`,
+        ...lines,
+        `미배정 작업량 ${plan.overflowHours.toFixed(1)}시간`,
+        ...(plan.waitingCount ? [`피드백 대기 ${plan.waitingCount}건`] : [])
+      ].join("\n");
+    }
+
+    async function copyTodayPlan() {
+      const text = todayPlanSummaryText();
+      try {
+        await navigator.clipboard.writeText(text);
+        document.getElementById("todayPlanStatus").textContent = "오늘 작업 계획을 복사했습니다.";
+      } catch {
+        document.getElementById("todayPlanStatus").textContent = text;
+      }
+    }
+
     function renderSchedules() {
       const container = document.getElementById("scheduleList");
       if (!container) return;
+      renderTodayPlan();
       if (!schedules.length) {
         container.innerHTML = `<div class="empty-state">등록된 일정이 없습니다. 위 입력칸에 작업을 넣고 일정 추가를 눌러주세요.</div>`;
         return;
@@ -4515,6 +4803,7 @@
       loadState();
       loadSchedules();
       loadProfitState();
+      loadTodayPlanSettings();
       setDefaultDates();
       renderServices();
       renderSchedules();
@@ -4598,6 +4887,17 @@
         const topbar = document.getElementById("topbar");
         setTopbarExpanded(!topbar.classList.contains("is-expanded"));
       });
+      ["todayPlanDate", "todayFocusHours"].forEach((id) => {
+        document.getElementById(id).addEventListener("change", () => {
+          saveTodayPlanSettings();
+          renderTodayPlan();
+        });
+        document.getElementById(id).addEventListener("input", () => {
+          saveTodayPlanSettings();
+          renderTodayPlan();
+        });
+      });
+      document.getElementById("copyTodayPlanButton").addEventListener("click", copyTodayPlan);
       document.getElementById("applyButton").addEventListener("click", applyCurrentInputs);
       document.getElementById("exportButton").addEventListener("click", exportBackup);
       document.getElementById("importButton").addEventListener("click", importBackup);
