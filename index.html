@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1c6b5a">
+  <meta name="theme-color" content="#66734a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="조쉬">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,19 +12,23 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f7f9;
-      --panel: #ffffff;
-      --panel-soft: #eef3f8;
-      --line: #d9e0e7;
-      --text: #17202a;
-      --muted: #607080;
-      --accent: #1c6b5a;
-      --accent-strong: #155143;
-      --accent-soft: #dceee9;
-      --warn: #a95d00;
-      --danger: #b42318;
-      --ok: #12704e;
-      --shadow: 0 12px 30px rgba(31, 45, 61, 0.08);
+      --bg: #f1eee4;
+      --panel: #fdfbf4;
+      --panel-soft: #e9ebdf;
+      --line: #cbc8b8;
+      --text: #28302a;
+      --muted: #6c7168;
+      --accent: #66734a;
+      --accent-strong: #495632;
+      --accent-soft: #e1e5d3;
+      --warn: #9a632e;
+      --danger: #a4473f;
+      --ok: #476a50;
+      --success-soft: #e4ece0;
+      --warning-soft: #f2e7d3;
+      --danger-soft: #f2dfdc;
+      --input-bg: #fffefa;
+      --shadow: 0 10px 26px rgba(63, 67, 51, 0.08);
       font-family: Inter, "Pretendard", "Segoe UI", Arial, sans-serif;
     }
 
@@ -74,7 +78,7 @@
       gap: 12px;
       padding: 9px 16px;
       border-bottom: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(250, 248, 239, 0.94);
       position: sticky;
       top: 0;
       z-index: 10;
@@ -96,7 +100,9 @@
 
     .brand h1 {
       margin: 0;
+      color: var(--accent-strong);
       font-size: 22px;
+      font-weight: 900;
       line-height: 1.1;
       letter-spacing: 0;
     }
@@ -123,7 +129,7 @@
       display: flex;
     }
 
-    .topbar-toggle {
+    .button.topbar-toggle {
       width: 38px;
       min-width: 38px;
       padding: 0;
@@ -131,6 +137,9 @@
       justify-self: end;
       font-size: 18px;
       line-height: 1;
+      border-color: #b9bda8;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
     }
 
     .topbar-toggle-icon {
@@ -144,7 +153,7 @@
 
     .button {
       border: 1px solid var(--line);
-      background: #fff;
+      background: var(--input-bg);
       color: var(--text);
       height: 38px;
       padding: 0 12px;
@@ -153,6 +162,14 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      font-weight: 700;
+      transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+    }
+
+    .button:hover {
+      border-color: #aeb39a;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
     }
 
     .button.primary {
@@ -161,10 +178,16 @@
       color: white;
     }
 
+    .button.primary:hover {
+      border-color: var(--accent-strong);
+      background: var(--accent-strong);
+      color: white;
+    }
+
     .button:focus-visible,
     input:focus-visible,
     select:focus-visible {
-      outline: 3px solid rgba(28, 107, 90, 0.28);
+      outline: 3px solid rgba(102, 115, 74, 0.28);
       outline-offset: 2px;
     }
 
@@ -175,7 +198,7 @@
       gap: 16px;
       padding: 10px 28px;
       border-bottom: 1px solid var(--line);
-      background: var(--panel-soft);
+      background: #e6e8da;
     }
 
     .auth-form,
@@ -192,7 +215,7 @@
       border: 1px solid var(--line);
       border-radius: 7px;
       padding: 0 10px;
-      background: #fff;
+      background: var(--input-bg);
       color: var(--text);
     }
 
@@ -241,12 +264,15 @@
     .panel-header {
       padding: 16px 16px 12px;
       border-bottom: 1px solid var(--line);
-      background: #fff;
+      background: #f8f5eb;
     }
 
     .panel-header h2 {
       margin: 0;
+      padding-left: 10px;
+      border-left: 4px solid var(--accent);
       font-size: 16px;
+      font-weight: 900;
       letter-spacing: 0;
     }
 
@@ -295,10 +321,16 @@
       min-width: 0;
       height: 38px;
       border: 1px solid var(--line);
-      background: #fff;
+      background: var(--input-bg);
       border-radius: 7px;
       padding: 0 10px;
       color: var(--text);
+      transition: border-color 140ms ease, background-color 140ms ease;
+    }
+
+    input:hover,
+    select:hover {
+      border-color: #aeb39a;
     }
 
     input[type="checkbox"] {
@@ -326,11 +358,11 @@
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fff;
+      background: var(--input-bg);
     }
 
     .service-row.is-off {
-      background: #f8fafb;
+      background: #f3f1e9;
       color: var(--muted);
     }
 
@@ -389,7 +421,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px;
-      background: #fff;
+      background: var(--input-bg);
     }
 
     .metric.wide {
@@ -462,17 +494,17 @@
 
     .status.ok {
       color: var(--ok);
-      background: #ddf4e8;
+      background: var(--success-soft);
     }
 
     .status.warn {
       color: var(--warn);
-      background: #fff0d9;
+      background: var(--warning-soft);
     }
 
     .status.danger {
       color: var(--danger);
-      background: #fde2df;
+      background: var(--danger-soft);
     }
 
     .sources {
@@ -487,7 +519,7 @@
     .sources a {
       color: var(--accent-strong);
       text-decoration: none;
-      border-bottom: 1px solid rgba(21, 81, 67, 0.25);
+      border-bottom: 1px solid rgba(73, 86, 50, 0.3);
     }
 
     .empty-state {
@@ -495,7 +527,7 @@
       border-radius: 8px;
       padding: 14px;
       color: var(--muted);
-      background: #fbfcfd;
+      background: #f6f3ea;
       line-height: 1.45;
       font-size: 13px;
     }
@@ -506,6 +538,8 @@
 
     .today-panel {
       grid-column: 1 / -1;
+      border-color: #b7bba4;
+      box-shadow: 0 12px 30px rgba(73, 86, 50, 0.1);
     }
 
     .today-toolbar {
@@ -526,6 +560,11 @@
       margin-top: 14px;
     }
 
+    .today-summary .metric:first-child {
+      border-color: #b7bba4;
+      background: var(--accent-soft);
+    }
+
     .today-plan {
       display: grid;
       gap: 0;
@@ -540,6 +579,11 @@
       align-items: center;
       padding: 13px 0;
       border-bottom: 1px solid var(--line);
+      transition: background-color 140ms ease;
+    }
+
+    .today-plan-row:hover {
+      background: rgba(225, 229, 211, 0.5);
     }
 
     .today-plan-main {
@@ -572,6 +616,7 @@
       font-size: 17px;
       font-weight: 900;
       font-variant-numeric: tabular-nums;
+      color: var(--accent-strong);
     }
 
     .today-overflow {
@@ -601,7 +646,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px;
-      background: #fff;
+      background: var(--input-bg);
       display: grid;
       gap: 10px;
       min-width: 0;
@@ -647,12 +692,12 @@
 
     .chip.fixed {
       color: var(--danger);
-      background: #fde2df;
+      background: var(--danger-soft);
     }
 
     .chip.target {
       color: var(--warn);
-      background: #fff0d9;
+      background: var(--warning-soft);
     }
 
     .schedule-lines {
@@ -686,7 +731,7 @@
       height: 8px;
       overflow: hidden;
       border-radius: 999px;
-      background: #e8edf2;
+      background: #dfddcf;
     }
 
     .progress-fill {
@@ -702,9 +747,9 @@
     }
 
     .button.danger {
-      border-color: #f0c8c4;
+      border-color: #d9b6b0;
       color: var(--danger);
-      background: #fff7f6;
+      background: #fbf2ef;
     }
 
 
@@ -747,7 +792,7 @@
 
     .calendar-day-name,
     .calendar-cell {
-      background: #fff;
+      background: var(--input-bg);
       min-width: 0;
     }
 
@@ -769,7 +814,7 @@
     }
 
     .calendar-cell.is-muted {
-      background: #f7f9fb;
+      background: #f0eee6;
       color: var(--muted);
     }
 
@@ -796,17 +841,17 @@
     }
 
     .calendar-item.danger {
-      background: #fde2df;
+      background: var(--danger-soft);
       color: var(--danger);
     }
 
     .calendar-item.warn {
-      background: #fff0d9;
+      background: var(--warning-soft);
       color: var(--warn);
     }
 
     .calendar-item.ok {
-      background: #ddf4e8;
+      background: var(--success-soft);
       color: var(--ok);
     }
 
@@ -920,7 +965,7 @@
       padding: 10px 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fff;
+      background: var(--input-bg);
     }
 
     .longform-case-value span {
@@ -950,7 +995,7 @@
     .reference-file-form input[type="file"] {
       min-width: 0;
       padding: 7px;
-      background: #fff;
+      background: var(--input-bg);
     }
 
     .reference-progress {
@@ -996,9 +1041,9 @@
       gap: 10px;
       margin-top: 12px;
       padding: 12px;
-      border: 1px solid #bfd8d0;
+      border: 1px solid #b7bba4;
       border-radius: 8px;
-      background: #f4faf8;
+      background: #f0f2e7;
     }
 
     .chatgpt-bridge[hidden] {
@@ -1056,7 +1101,7 @@
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #f8fafb;
+      background: #f3f1e9;
     }
 
     .reference-thumbnail {
@@ -1098,7 +1143,7 @@
       padding: 8px;
       border: 1px solid var(--line);
       border-radius: 7px;
-      background: #fff;
+      background: var(--input-bg);
       color: var(--muted);
       font-size: 10px;
       font-weight: 700;
@@ -1122,7 +1167,7 @@
       padding: 8px;
       border: 1px solid var(--line);
       border-radius: 7px;
-      background: #fff;
+      background: var(--input-bg);
       color: var(--muted);
       font-size: 10px;
       font-weight: 700;
