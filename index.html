@@ -68,17 +68,23 @@
     }
 
     .topbar {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 38px;
       align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      padding: 18px 28px;
+      gap: 12px;
+      padding: 9px 16px;
       border-bottom: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.92);
       position: sticky;
       top: 0;
       z-index: 10;
       backdrop-filter: blur(10px);
+      transition: padding 160ms ease;
+    }
+
+    .topbar.is-expanded {
+      grid-template-columns: auto minmax(0, 1fr) 38px;
+      padding: 14px 20px;
     }
 
     .brand {
@@ -101,12 +107,39 @@
       white-space: nowrap;
     }
 
+    .topbar:not(.is-expanded) .brand span {
+      display: none;
+    }
+
     .top-actions {
-      display: flex;
+      display: none;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
       justify-content: flex-end;
+    }
+
+    .topbar.is-expanded .top-actions {
+      display: flex;
+    }
+
+    .topbar-toggle {
+      width: 38px;
+      min-width: 38px;
+      padding: 0;
+      justify-content: center;
+      justify-self: end;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .topbar-toggle-icon {
+      display: block;
+      transition: transform 160ms ease;
+    }
+
+    .topbar.is-expanded .topbar-toggle-icon {
+      transform: rotate(180deg);
     }
 
     .button {
@@ -1078,15 +1111,23 @@
     }
 
     @media (max-width: 820px) {
-      .topbar {
-        align-items: flex-start;
-        flex-direction: column;
-        padding: 16px;
+      .topbar,
+      .topbar.is-expanded {
+        grid-template-columns: minmax(0, 1fr) 38px;
+        align-items: center;
+        padding: 9px 16px;
       }
 
-      .top-actions {
+      .topbar.is-expanded .top-actions {
+        grid-column: 1 / -1;
+        grid-row: 2;
         width: 100%;
         justify-content: stretch;
+      }
+
+      .topbar-toggle {
+        grid-column: 2;
+        grid-row: 1;
       }
 
       .button {
@@ -1202,7 +1243,7 @@
         grid-template-columns: 1fr;
       }
 
-      .top-actions {
+      .topbar.is-expanded .top-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
       }
@@ -1279,13 +1320,12 @@
 </head>
 <body>
   <div class="shell">
-    <header class="topbar">
+    <header class="topbar" id="topbar">
       <div class="brand">
         <h1>조쉬</h1>
         <span>구독비 · 편집시간 · 마감 보고 계산</span>
       </div>
-      <div class="top-actions">
-        <button class="button" id="presetSeriEp2Button" type="button">세리님 EP2</button>
+      <div class="top-actions" id="topActions">
         <button class="button" id="presetOutsourceButton" type="button">정기 외주 예시</button>
         <button class="button" id="applyButton" type="button">적용</button>
         <button class="button" id="exportButton" type="button">백업 복사</button>
@@ -1293,6 +1333,17 @@
         <button class="button" id="resetButton" type="button">초기값</button>
         <button class="button primary" id="copyButton" type="button">요약 복사</button>
       </div>
+      <button
+        class="button topbar-toggle"
+        id="topbarToggleButton"
+        type="button"
+        aria-controls="topActions"
+        aria-expanded="false"
+        aria-label="상단 메뉴 펼치기"
+        title="상단 메뉴 펼치기"
+      >
+        <span class="topbar-toggle-icon" aria-hidden="true">▾</span>
+      </button>
     </header>
 
     <section class="auth-strip" aria-label="계정 및 일정 동기화">
@@ -1808,6 +1859,7 @@
     const STORAGE_KEY = "josh-subscription-calculator-v2";
     const SCHEDULE_STORAGE_KEY = "josh-schedules-v1";
     const PROFIT_STORAGE_KEY = "josh-profit-v1";
+    const TOPBAR_STORAGE_KEY = "josh-topbar-expanded-v1";
     const SETTINGS_VERSION = 5;
     const PROFIT_SETTINGS_VERSION = 2;
     const FINANCE_STATE_PREFIX = "JOSH_MONTHLY_PLAN_V1:";
@@ -2033,6 +2085,33 @@
 
     function formatKrw(value) {
       return formatter.format(Math.max(0, Math.round(value)));
+    }
+
+    function setTopbarExpanded(expanded, persist = true) {
+      const topbar = document.getElementById("topbar");
+      const toggle = document.getElementById("topbarToggleButton");
+      const isExpanded = Boolean(expanded);
+      topbar.classList.toggle("is-expanded", isExpanded);
+      toggle.setAttribute("aria-expanded", String(isExpanded));
+      const actionLabel = isExpanded ? "상단 메뉴 접기" : "상단 메뉴 펼치기";
+      toggle.setAttribute("aria-label", actionLabel);
+      toggle.title = actionLabel;
+      if (!persist) return;
+      try {
+        localStorage.setItem(TOPBAR_STORAGE_KEY, String(isExpanded));
+      } catch {
+        // The toggle still works when browser storage is unavailable.
+      }
+    }
+
+    function loadTopbarPreference() {
+      let isExpanded = false;
+      try {
+        isExpanded = localStorage.getItem(TOPBAR_STORAGE_KEY) === "true";
+      } catch {
+        isExpanded = false;
+      }
+      setTopbarExpanded(isExpanded, false);
     }
 
     function currentCameraCount() {
@@ -4403,51 +4482,6 @@
       applyCurrentInputs();
     }
 
-    function applySeriEp2Preset() {
-      document.getElementById("baseHours").value = "4";
-      document.getElementById("hourlyRate").value = String(cameraHourlyRates[currentCameraCount()]);
-      document.getElementById("projectPrice").value = "0";
-      document.getElementById("condition").value = "2";
-      document.getElementById("difficulty").value = "1.25";
-      document.getElementById("rush").value = "1.2";
-      document.getElementById("dailyHours").value = "3";
-      document.getElementById("workdayMode").value = "weekdays";
-      document.getElementById("startDate").value = "2026-07-08";
-      document.getElementById("deadline").value = "2026-07-08";
-
-      services = services.map((service) => {
-        if (["envato", "artlist", "epidemic"].includes(service.id)) {
-          return { ...service, enabled: true };
-        }
-        return service;
-      });
-
-      renderServices();
-      calculate();
-      const seriSchedule = {
-        id: "seri-ep2",
-        name: "세리님 채널 EP2",
-        type: "희망",
-        deadline: "2026-07-08",
-        remainingHours: 4,
-        conditionDelay: 2,
-        dailyHours: 3,
-        progress: 30,
-        notes: "보이스 조정, 배경음악 찾기, 1차본 전달"
-      };
-      const existingIndex = schedules.findIndex((item) => item.id === seriSchedule.id);
-      if (existingIndex >= 0) {
-        schedules[existingIndex] = seriSchedule;
-      } else {
-        schedules.push(seriSchedule);
-      }
-      saveSchedules();
-      renderSchedules();
-      renderCalendar();
-      document.getElementById("copyState").textContent =
-        "세리님 채널 EP2: 컷편집/타임라인 30%, 남은 작업은 보이스 조정과 배경음악 찾기. 컨디션 많이 나쁨 기준 4시간 작업은 +2시간 지연을 붙여 6시간으로 보정됩니다.";
-    }
-
     function applyOutsourcePreset() {
       document.getElementById("baseHours").value = "15";
       document.getElementById("projectPrice").value = "500000";
@@ -4477,6 +4511,7 @@
     }
 
     function init() {
+      loadTopbarPreference();
       loadState();
       loadSchedules();
       loadProfitState();
@@ -4559,7 +4594,10 @@
           addSchedule();
         });
       });
-      document.getElementById("presetSeriEp2Button").addEventListener("click", applySeriEp2Preset);
+      document.getElementById("topbarToggleButton").addEventListener("click", () => {
+        const topbar = document.getElementById("topbar");
+        setTopbarExpanded(!topbar.classList.contains("is-expanded"));
+      });
       document.getElementById("applyButton").addEventListener("click", applyCurrentInputs);
       document.getElementById("exportButton").addEventListener("click", exportBackup);
       document.getElementById("importButton").addEventListener("click", importBackup);
