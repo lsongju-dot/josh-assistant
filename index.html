@@ -163,14 +163,23 @@
       border: 1px solid var(--line);
       background: var(--input-bg);
       color: var(--text);
-      height: 38px;
-      padding: 0 12px;
+      width: auto;
+      max-width: 100%;
+      min-width: 0;
+      min-height: 38px;
+      height: auto;
+      padding: 8px 12px;
       border-radius: 7px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       font-weight: 700;
+      line-height: 1.25;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: anywhere;
       transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
     }
 
@@ -388,6 +397,7 @@
     input,
     select {
       width: 100%;
+      max-width: 100%;
       min-width: 0;
       height: 38px;
       border: 1px solid var(--line);
@@ -396,6 +406,12 @@
       padding: 0 10px;
       color: var(--text);
       transition: border-color 140ms ease, background-color 140ms ease;
+    }
+
+    select {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     input:hover,
@@ -440,6 +456,7 @@
       display: grid;
       gap: 3px;
       min-width: 0;
+      overflow: hidden;
     }
 
     .service-name strong {
@@ -452,6 +469,9 @@
     .service-name span {
       color: var(--muted);
       font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .service-cost {
@@ -487,6 +507,7 @@
     }
 
     .metric {
+      min-width: 0;
       min-height: 82px;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -512,6 +533,7 @@
       line-height: 1.1;
       letter-spacing: 0;
       font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
     }
 
     .metric em {
@@ -521,6 +543,7 @@
       font-size: 11px;
       font-style: normal;
       line-height: 1.35;
+      overflow-wrap: anywhere;
     }
 
     .quote-box {
@@ -543,11 +566,15 @@
 
     .quote-line span:first-child {
       color: var(--muted);
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .quote-line strong {
+      min-width: 0;
       font-variant-numeric: tabular-nums;
       text-align: right;
+      overflow-wrap: anywhere;
     }
 
     .status {
@@ -792,9 +819,11 @@
     }
 
     .schedule-line strong {
+      min-width: 0;
       color: var(--text);
       text-align: right;
       font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
     }
 
     .progress-track {
@@ -1358,7 +1387,7 @@
       }
 
       .today-toolbar {
-        grid-template-columns: minmax(150px, 1fr) minmax(130px, 0.75fr) minmax(150px, auto);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr) minmax(120px, auto);
       }
 
       .today-summary {
@@ -1379,7 +1408,7 @@
       }
 
       .summary-panel .metric strong {
-        font-size: 22px;
+        font-size: 20px;
       }
     }
 
@@ -1486,6 +1515,10 @@
       .today-toolbar,
       .today-summary {
         grid-template-columns: 1fr;
+      }
+
+      .metric strong {
+        font-size: 22px;
       }
 
       .today-plan-row {
@@ -1956,7 +1989,7 @@
                   <option value="3">3캠</option>
                 </select>
               </div>
-              <div class="field">
+              <div class="field full">
                 <label for="longformScope">편집 범위</label>
                 <select id="longformScope">
                   <option value="full" selected>전체 편집 · 셀렉과 컷 포함</option>
