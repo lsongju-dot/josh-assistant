@@ -2072,9 +2072,7 @@
                 <span>대표 프레임 묶음과 분석문을 ChatGPT에 전달한 뒤, 답변을 아래에 붙여넣으세요.</span>
               </div>
               <div class="chatgpt-bridge-actions">
-                <button class="button" id="downloadChatgptFramesButton" type="button">프레임 묶음 다운로드</button>
-                <button class="button" id="copyChatgptPromptButton" type="button">분석 요청문 복사</button>
-                <a class="button primary" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT 열기</a>
+                <button class="button primary" id="prepareChatgptAnalysisButton" type="button">프레임·요청문 준비 후 ChatGPT 열기</button>
               </div>
               <div class="chatgpt-prompt-preview">
                 <label for="chatgptPromptText">ChatGPT 분석 요청문</label>
@@ -2087,7 +2085,7 @@
                 </div>
                 <button class="button primary" id="applyChatgptAnalysisButton" type="button">답변 견적에 반영</button>
               </div>
-              <span class="chatgpt-bridge-status" id="chatgptBridgeStatus" role="status">대표 프레임이 준비됐습니다.</span>
+              <span class="chatgpt-bridge-status" id="chatgptBridgeStatus" role="status">버튼을 누른 뒤 ChatGPT에서 저장된 프레임 이미지를 첨부하고 붙여넣으세요.</span>
             </div>
           </div>
 
@@ -3189,23 +3187,18 @@
       return cleaned || "reference";
     }
 
-    async function downloadChatgptFrameSheet() {
-      const status = document.getElementById("chatgptBridgeStatus");
-      try {
-        status.textContent = "대표 프레임 묶음을 만드는 중입니다.";
-        const blob = await createChatgptFrameSheetBlob(referenceAnalysisState);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${safeDownloadName(referenceAnalysisState.title)}-frames.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        status.textContent = "프레임 묶음을 저장했습니다. ChatGPT에 이 이미지를 올려주세요.";
-      } catch (error) {
-        status.textContent = error.message || "프레임 묶음을 만들지 못했습니다.";
-      }
+    async function downloadChatgptFrameSheet(state) {
+      const blob = await createChatgptFrameSheetBlob(state);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const fileName = `${safeDownloadName(state.title)}-frames.jpg`;
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return fileName;
     }
 
     async function copyTextWithFallback(text, visibleTarget) {
@@ -3246,25 +3239,44 @@
       return copied;
     }
 
-    async function copyChatgptAnalysisPrompt() {
+    async function prepareChatgptAnalysis() {
       const prompt = buildChatgptAnalysisPrompt(referenceAnalysisState);
       const status = document.getElementById("chatgptBridgeStatus");
       const promptField = document.getElementById("chatgptPromptText");
-      const button = document.getElementById("copyChatgptPromptButton");
+      const button = document.getElementById("prepareChatgptAnalysisButton");
       if (!prompt) {
         status.textContent = "먼저 영상 프레임을 분석해주세요.";
         return;
       }
+
+      const originalLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = "준비 중";
       promptField.value = prompt;
-      const copied = await copyTextWithFallback(prompt, promptField);
-      if (copied) {
-        status.textContent = "분석 요청문을 복사했습니다. ChatGPT에 붙여넣으세요.";
-        button.textContent = "복사됨";
+
+      // Open immediately while the click still counts as a user gesture.
+      window.open("https://chatgpt.com/", "_blank", "noopener,noreferrer");
+
+      try {
+        status.textContent = "프레임 묶음 저장과 요청문 복사를 준비하고 있습니다.";
+        const copyPromise = copyTextWithFallback(prompt, promptField);
+        const downloadPromise = downloadChatgptFrameSheet(referenceAnalysisState);
+        const [copied, fileName] = await Promise.all([copyPromise, downloadPromise]);
+        if (copied) {
+          status.textContent = `${fileName}을 첨부하고, ChatGPT 입력창에 붙여넣으세요.`;
+          button.textContent = "준비 완료";
+        } else {
+          status.textContent = `${fileName}을 첨부하세요. 자동 복사가 막혀 요청문을 선택했으니 직접 복사한 뒤 붙여넣으세요.`;
+          button.textContent = "요청문 직접 복사 필요";
+        }
+      } catch (error) {
+        status.textContent = error.message || "ChatGPT 분석 준비를 완료하지 못했습니다.";
+        button.textContent = "다시 준비하기";
+      } finally {
+        button.disabled = false;
         setTimeout(() => {
-          button.textContent = "분석 요청문 복사";
-        }, 1600);
-      } else {
-        status.textContent = "자동 복사가 막혀 요청문 전체를 선택했습니다. 복사를 눌러 ChatGPT에 붙여넣으세요.";
+          button.textContent = originalLabel;
+        }, 2200);
       }
     }
 
@@ -3335,14 +3347,13 @@
         document.getElementById("chatgptPromptText").value = "";
         return;
       }
-      document.getElementById("downloadChatgptFramesButton").disabled = false;
-      document.getElementById("copyChatgptPromptButton").disabled = false;
+      document.getElementById("prepareChatgptAnalysisButton").disabled = false;
       document.getElementById("applyChatgptAnalysisButton").disabled = false;
       document.getElementById("chatgptPromptText").value = buildChatgptAnalysisPrompt(state);
       document.getElementById("chatgptBridgeStatus").textContent =
         state.analysisMode === "chatgpt-subscription"
           ? "구독 중인 ChatGPT 분석 결과가 적용되어 있습니다."
-          : "대표 프레임이 준비됐습니다.";
+          : "버튼을 누른 뒤 ChatGPT에서 저장된 프레임 이미지를 첨부하고 붙여넣으세요.";
     }
 
     async function requestAiFrameAnalysis(frames, localAnalysis, title) {
@@ -5260,7 +5271,8 @@
       document.getElementById("frameAnalysisProgress").hidden = true;
       document.getElementById("frameAnalysisProgressBar").value = 0;
       document.getElementById("chatgptAnalysisResult").value = "";
-      document.getElementById("chatgptBridgeStatus").textContent = "대표 프레임이 준비됐습니다.";
+      document.getElementById("chatgptBridgeStatus").textContent =
+        "버튼을 누른 뒤 ChatGPT에서 저장된 프레임 이미지를 첨부하고 붙여넣으세요.";
       selectedReferenceFile = null;
       referenceAnalysisState = null;
       renderReferenceAnalysis(null);
@@ -5381,13 +5393,9 @@
         }
       });
       document.getElementById("analyzeFramesButton").addEventListener("click", analyzeSelectedReferenceFile);
-      document.getElementById("downloadChatgptFramesButton").addEventListener(
+      document.getElementById("prepareChatgptAnalysisButton").addEventListener(
         "click",
-        downloadChatgptFrameSheet
-      );
-      document.getElementById("copyChatgptPromptButton").addEventListener(
-        "click",
-        copyChatgptAnalysisPrompt
+        prepareChatgptAnalysis
       );
       document.getElementById("chatgptPromptText").addEventListener("focus", (event) => {
         event.currentTarget.select();
