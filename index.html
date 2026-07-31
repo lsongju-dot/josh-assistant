@@ -36,6 +36,10 @@
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     [hidden] {
       display: none !important;
     }
@@ -55,6 +59,7 @@
     body {
       margin: 0;
       min-height: 100vh;
+      overflow-x: hidden;
       background: var(--bg);
       color: var(--text);
     }
@@ -67,8 +72,11 @@
 
     .shell {
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto auto auto 1fr;
+      width: 100%;
+      min-width: 0;
       min-height: 100vh;
+      overflow-x: clip;
     }
 
     .topbar {
@@ -245,6 +253,46 @@
       color: var(--danger);
     }
 
+    .desktop-section-nav {
+      position: sticky;
+      top: 57px;
+      z-index: 9;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 44px;
+      padding: 0 18px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--line);
+      background: rgba(248, 245, 235, 0.96);
+      backdrop-filter: blur(10px);
+      scrollbar-width: none;
+    }
+
+    .desktop-section-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .desktop-section-nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 13px;
+      border-bottom: 3px solid transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .desktop-section-nav a:hover,
+    .desktop-section-nav a.is-active {
+      border-bottom-color: var(--accent);
+      color: var(--accent-strong);
+      background: rgba(225, 229, 211, 0.55);
+    }
+
     .layout {
       display: grid;
       grid-template-columns: minmax(320px, 390px) minmax(0, 1fr) minmax(300px, 380px);
@@ -254,11 +302,13 @@
     }
 
     .panel {
+      min-width: 0;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: var(--shadow);
       overflow: hidden;
+      scroll-margin-top: 112px;
     }
 
     .panel-header {
@@ -353,8 +403,8 @@
 
     .service-row {
       display: grid;
-      grid-template-columns: 28px minmax(110px, 150px) minmax(180px, 1fr) minmax(118px, 132px) minmax(118px, 150px);
-      gap: 10px;
+      grid-template-columns: 28px minmax(90px, 120px) minmax(138px, 1fr) minmax(105px, 116px) minmax(84px, 104px);
+      gap: 8px;
       align-items: center;
       padding: 12px;
       border: 1px solid var(--line);
@@ -439,7 +489,7 @@
 
     .metric strong {
       display: block;
-      font-size: clamp(18px, 2.5vw, 26px);
+      font-size: 24px;
       line-height: 1.1;
       letter-spacing: 0;
       font-variant-numeric: tabular-nums;
@@ -1233,7 +1283,30 @@
       text-align: center;
     }
 
+    @media (min-width: 1181px) and (max-width: 1340px) {
+      .layout {
+        grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
+      }
+
+      .summary-panel {
+        position: static;
+      }
+
+      .schedule-form,
+      .schedule-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .longform-results {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
     @media (max-width: 1180px) {
+      .desktop-section-nav {
+        display: none;
+      }
+
       .layout {
         grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
       }
@@ -1253,6 +1326,46 @@
 
       .longform-results {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 1181px) {
+      .today-panel .panel-body {
+        display: grid;
+        grid-template-columns: minmax(420px, 0.9fr) minmax(0, 1.6fr);
+        gap: 14px 18px;
+        align-items: end;
+      }
+
+      .today-toolbar {
+        grid-template-columns: minmax(150px, 1fr) minmax(130px, 0.75fr) minmax(150px, auto);
+      }
+
+      .today-summary {
+        margin-top: 0;
+      }
+
+      .today-plan,
+      .today-overflow {
+        grid-column: 1 / -1;
+      }
+
+      .today-plan:empty {
+        display: none;
+      }
+
+      .today-overflow {
+        margin-top: 0;
+      }
+
+      .summary-panel .metric strong {
+        font-size: 22px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
       }
     }
 
@@ -1425,16 +1538,21 @@
       .auth-form,
       .auth-account {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: 1fr;
       }
 
       .auth-account {
-        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .auth-account .auth-email {
+        grid-column: 1 / -1;
       }
 
       .auth-form .button,
       .auth-account .button {
-        min-width: max-content;
+        width: 100%;
+        min-width: 0;
       }
 
       input,
@@ -1530,8 +1648,18 @@
       <p class="auth-status" id="authStatus" role="status">로그인하면 일정과 금액 정보가 PC·모바일에 자동 동기화됩니다.</p>
     </section>
 
+    <nav class="desktop-section-nav" id="desktopSectionNav" aria-label="주요 기능 바로가기">
+      <a class="is-active" href="#todayPanel">오늘</a>
+      <a href="#settingsPanel">견적 계산</a>
+      <a href="#servicesPanel">프로그램비</a>
+      <a href="#longformPanel">롱폼 단가</a>
+      <a href="#schedulePanel">일정</a>
+      <a href="#calendarPanel">캘린더</a>
+      <a href="#profitPanel">월 수익</a>
+    </nav>
+
     <main class="layout">
-      <section class="panel today-panel" aria-labelledby="todayPlanTitle">
+      <section class="panel today-panel" id="todayPanel" aria-labelledby="todayPlanTitle">
         <div class="panel-header">
           <h2 id="todayPlanTitle">오늘 작업</h2>
         </div>
@@ -1569,7 +1697,7 @@
         </div>
       </section>
 
-      <section class="panel settings-panel" aria-labelledby="settingsTitle">
+      <section class="panel settings-panel" id="settingsPanel" aria-labelledby="settingsTitle">
         <div class="panel-header">
           <h2 id="settingsTitle">계산 기준</h2>
         </div>
@@ -1660,7 +1788,7 @@
         </div>
       </section>
 
-      <section class="panel services-panel" aria-labelledby="servicesTitle">
+      <section class="panel services-panel" id="servicesPanel" aria-labelledby="servicesTitle">
         <div class="panel-header">
           <h2 id="servicesTitle">유료 프로그램</h2>
         </div>
@@ -1761,7 +1889,7 @@
         </div>
       </aside>
 
-      <section class="panel longform-panel" aria-labelledby="longformTitle">
+      <section class="panel longform-panel" id="longformPanel" aria-labelledby="longformTitle">
         <div class="panel-header">
           <h2 id="longformTitle">롱폼 최종본 분당 단가 계산</h2>
           <p class="longform-header-note">원본 촬영 길이가 아니라 납품하는 최종본 영상 길이를 기준으로 계산합니다.</p>
@@ -1946,7 +2074,7 @@
         </div>
       </section>
 
-      <section class="panel schedule-panel" aria-labelledby="scheduleTitle">
+      <section class="panel schedule-panel" id="schedulePanel" aria-labelledby="scheduleTitle">
         <div class="panel-header">
           <h2 id="scheduleTitle">일정 보드</h2>
         </div>
@@ -2001,7 +2129,7 @@
         </div>
       </section>
 
-      <section class="panel calendar-panel" aria-labelledby="calendarTitle">
+      <section class="panel calendar-panel" id="calendarPanel" aria-labelledby="calendarTitle">
         <div class="panel-header">
           <h2 id="calendarTitle">캘린더</h2>
         </div>
@@ -2018,7 +2146,7 @@
         </div>
       </section>
 
-      <section class="panel profit-panel" aria-labelledby="profitTitle">
+      <section class="panel profit-panel" id="profitPanel" aria-labelledby="profitTitle">
         <div class="panel-header">
           <h2 id="profitTitle">월 수입·순수익</h2>
         </div>
@@ -2370,6 +2498,46 @@
         isExpanded = false;
       }
       setTopbarExpanded(isExpanded, false);
+    }
+
+    function setupDesktopSectionNav() {
+      const nav = document.getElementById("desktopSectionNav");
+      if (!nav) return;
+      const links = Array.from(nav.querySelectorAll("a[href^='#']"));
+      const items = links
+        .map((link) => ({ link, target: document.querySelector(link.getAttribute("href")) }))
+        .filter((item) => item.target);
+      let frameRequested = false;
+
+      const updateActiveLink = () => {
+        frameRequested = false;
+        if (window.matchMedia("(max-width: 1180px)").matches) return;
+        const marker = 132;
+        let active = items[0];
+        items.forEach((item) => {
+          if (item.target.getBoundingClientRect().top <= marker) active = item;
+        });
+        items.forEach((item) => {
+          const isActive = item === active;
+          item.link.classList.toggle("is-active", isActive);
+          if (isActive) item.link.setAttribute("aria-current", "location");
+          else item.link.removeAttribute("aria-current");
+        });
+      };
+
+      const requestUpdate = () => {
+        if (frameRequested) return;
+        frameRequested = true;
+        requestAnimationFrame(updateActiveLink);
+      };
+
+      window.addEventListener("scroll", requestUpdate, { passive: true });
+      window.addEventListener("resize", requestUpdate);
+      links.forEach((link) => link.addEventListener("click", () => {
+        links.forEach((item) => item.classList.remove("is-active"));
+        link.classList.add("is-active");
+      }));
+      updateActiveLink();
     }
 
     function currentCameraCount() {
@@ -5030,6 +5198,7 @@
 
     function init() {
       loadTopbarPreference();
+      setupDesktopSectionNav();
       loadState();
       loadSchedules();
       loadProfitState();
