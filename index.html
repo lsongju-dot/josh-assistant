@@ -295,10 +295,11 @@
 
     .layout {
       display: grid;
-      grid-template-columns: minmax(320px, 390px) minmax(0, 1fr) minmax(300px, 380px);
+      grid-template-columns: minmax(320px, 350px) minmax(480px, 520px) minmax(300px, 330px);
       gap: 18px;
       padding: 18px;
       align-items: start;
+      justify-content: center;
     }
 
     .panel {
@@ -317,6 +318,13 @@
       background: #f8f5eb;
     }
 
+    .panel-header-with-action {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
     .panel-header h2 {
       margin: 0;
       padding-left: 10px;
@@ -332,8 +340,19 @@
 
     .summary-panel {
       position: sticky;
-      top: 76px;
-      scroll-margin-top: 76px;
+      top: 112px;
+      scroll-margin-top: 112px;
+    }
+
+    .summary-toggle {
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
+      padding: 0;
+      justify-content: center;
+      color: var(--accent-strong);
+      font-size: 20px;
+      line-height: 1;
     }
 
     .field-grid {
@@ -403,7 +422,7 @@
 
     .service-row {
       display: grid;
-      grid-template-columns: 28px minmax(90px, 120px) minmax(138px, 1fr) minmax(105px, 116px) minmax(84px, 104px);
+      grid-template-columns: 28px minmax(76px, 104px) minmax(116px, 1fr) minmax(92px, 106px) minmax(78px, 94px);
       gap: 8px;
       align-items: center;
       padding: 12px;
@@ -1283,25 +1302,6 @@
       text-align: center;
     }
 
-    @media (min-width: 1181px) and (max-width: 1340px) {
-      .layout {
-        grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
-      }
-
-      .summary-panel {
-        position: static;
-      }
-
-      .schedule-form,
-      .schedule-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .longform-results {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
     @media (max-width: 1180px) {
       .desktop-section-nav {
         display: none;
@@ -1319,6 +1319,10 @@
         position: static;
       }
 
+      .summary-toggle {
+        display: none;
+      }
+
       .schedule-form,
       .schedule-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1330,6 +1334,22 @@
     }
 
     @media (min-width: 1181px) {
+      .layout.summary-collapsed {
+        grid-template-columns: minmax(320px, 350px) minmax(480px, 520px) 52px;
+      }
+
+      .summary-panel.is-collapsed .panel-header {
+        justify-content: center;
+        min-height: 52px;
+        padding: 8px;
+        border-bottom: 0;
+      }
+
+      .summary-panel.is-collapsed .panel-header h2,
+      .summary-panel.is-collapsed .panel-body {
+        display: none;
+      }
+
       .today-panel .panel-body {
         display: grid;
         grid-template-columns: minmax(420px, 0.9fr) minmax(0, 1.6fr);
@@ -1425,21 +1445,37 @@
         grid-column: auto;
       }
 
-      .summary-panel {
-        order: -2;
-        scroll-margin-top: 68px;
-      }
-
       .today-panel {
-        order: -3;
+        order: 1;
       }
 
       .schedule-panel {
-        order: -1;
+        order: 2;
+      }
+
+      .calendar-panel {
+        order: 3;
+      }
+
+      .settings-panel {
+        order: 4;
+      }
+
+      .services-panel {
+        order: 5;
+      }
+
+      .summary-panel {
+        order: 6;
+        scroll-margin-top: 68px;
       }
 
       .longform-panel {
-        order: -1;
+        order: 7;
+      }
+
+      .profit-panel {
+        order: 8;
       }
 
       .schedule-form,
@@ -1806,10 +1842,21 @@
       </section>
 
       <aside class="panel summary-panel" id="summaryPanel" aria-labelledby="summaryTitle">
-        <div class="panel-header">
+        <div class="panel-header panel-header-with-action">
           <h2 id="summaryTitle">요약</h2>
+          <button
+            class="button summary-toggle"
+            id="summaryToggleButton"
+            type="button"
+            aria-controls="summaryPanelBody"
+            aria-expanded="true"
+            aria-label="요약 사이드바 접기"
+            title="요약 사이드바 접기"
+          >
+            <span id="summaryToggleIcon" aria-hidden="true">›</span>
+          </button>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" id="summaryPanelBody">
           <div class="summary-grid">
             <div class="metric wide">
               <span>월 프로그램 원가 추정</span>
@@ -2234,6 +2281,7 @@
     const SCHEDULE_STORAGE_KEY = "josh-schedules-v1";
     const PROFIT_STORAGE_KEY = "josh-profit-v1";
     const TOPBAR_STORAGE_KEY = "josh-topbar-expanded-v1";
+    const SUMMARY_STORAGE_KEY = "josh-summary-collapsed-v1";
     const TODAY_PLAN_STORAGE_KEY = "josh-today-plan-v1";
     const SETTINGS_VERSION = 5;
     const PROFIT_SETTINGS_VERSION = 2;
@@ -2498,6 +2546,37 @@
         isExpanded = false;
       }
       setTopbarExpanded(isExpanded, false);
+    }
+
+    function setSummaryCollapsed(collapsed, persist = true) {
+      const layout = document.querySelector(".layout");
+      const panel = document.getElementById("summaryPanel");
+      const toggle = document.getElementById("summaryToggleButton");
+      const icon = document.getElementById("summaryToggleIcon");
+      const isCollapsed = Boolean(collapsed);
+      layout.classList.toggle("summary-collapsed", isCollapsed);
+      panel.classList.toggle("is-collapsed", isCollapsed);
+      toggle.setAttribute("aria-expanded", String(!isCollapsed));
+      const actionLabel = isCollapsed ? "요약 사이드바 펼치기" : "요약 사이드바 접기";
+      toggle.setAttribute("aria-label", actionLabel);
+      toggle.title = actionLabel;
+      icon.textContent = isCollapsed ? "‹" : "›";
+      if (!persist) return;
+      try {
+        localStorage.setItem(SUMMARY_STORAGE_KEY, String(isCollapsed));
+      } catch {
+        // The sidebar remains usable when browser storage is unavailable.
+      }
+    }
+
+    function loadSummaryPreference() {
+      let isCollapsed = false;
+      try {
+        isCollapsed = localStorage.getItem(SUMMARY_STORAGE_KEY) === "true";
+      } catch {
+        isCollapsed = false;
+      }
+      setSummaryCollapsed(isCollapsed, false);
     }
 
     function setupDesktopSectionNav() {
@@ -3711,7 +3790,8 @@
             dailyHours: Number(item.dailyHours) || 3,
             progress: Math.min(100, Math.max(0, Number(item.progress) || 0)),
             notes: item.notes || ""
-          }));
+          })).filter((item) => !isRemovedLegacySchedule(item));
+          saveSchedules();
         }
       } catch {
         schedules = structuredClone(schedulesSeed);
@@ -3745,6 +3825,19 @@
 
     function isUuid(value) {
       return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value));
+    }
+
+    function normalizedScheduleName(value) {
+      return String(value || "")
+        .toLocaleLowerCase("ko-KR")
+        .replace(/[^0-9a-z가-힣]+/g, " ")
+        .trim()
+        .replace(/\s+/g, " ");
+    }
+
+    function isRemovedLegacySchedule(item) {
+      const name = normalizedScheduleName(item?.name);
+      return name === "세리님 ep2" || name === "세리님 채널 ep2";
     }
 
     function parseCloudNotes(value) {
@@ -3845,7 +3938,21 @@
         if (error) throw error;
 
         if (remoteProjects.length > 0) {
-          schedules = remoteProjects.map(cloudProjectToSchedule);
+          const removedProjectIds = remoteProjects
+            .filter((row) => isRemovedLegacySchedule({ name: row.name }))
+            .map((row) => row.id)
+            .filter(isUuid);
+          if (removedProjectIds.length > 0) {
+            const { error: removeError } = await supabaseClient
+              .from("projects")
+              .delete()
+              .in("id", removedProjectIds)
+              .eq("user_id", userId);
+            if (removeError) throw removeError;
+          }
+          schedules = remoteProjects
+            .map(cloudProjectToSchedule)
+            .filter((item) => !isRemovedLegacySchedule(item));
         } else if (schedules.length > 0) {
           const payload = schedules.map((item) => scheduleToCloudProject(item, userId));
           const { data: uploaded, error: uploadError } = await supabaseClient
@@ -5198,6 +5305,7 @@
 
     function init() {
       loadTopbarPreference();
+      loadSummaryPreference();
       setupDesktopSectionNav();
       loadState();
       loadSchedules();
@@ -5289,6 +5397,10 @@
       document.getElementById("topbarToggleButton").addEventListener("click", () => {
         const topbar = document.getElementById("topbar");
         setTopbarExpanded(!topbar.classList.contains("is-expanded"));
+      });
+      document.getElementById("summaryToggleButton").addEventListener("click", () => {
+        const summaryPanel = document.getElementById("summaryPanel");
+        setSummaryCollapsed(!summaryPanel.classList.contains("is-collapsed"));
       });
       ["todayPlanDate", "todayFocusHours"].forEach((id) => {
         document.getElementById(id).addEventListener("change", () => {
