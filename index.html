@@ -1833,6 +1833,15 @@
               </select>
             </div>
             <div class="field">
+              <label for="quoteMode">최종 견적 기준</label>
+              <select id="quoteMode">
+                <option value="longform" selected>롱폼 최종본 분당 기준</option>
+                <option value="hourly">예상 작업시간 기준</option>
+                <option value="highest">두 기준 중 높은 금액</option>
+              </select>
+              <small class="field-note">요약의 최종 권장 견적가에 적용됩니다.</small>
+            </div>
+            <div class="field">
               <label for="dailyHours">하루 가능 시간</label>
               <input id="dailyHours" type="number" min="0.5" step="0.5" value="3">
             </div>
@@ -1912,15 +1921,27 @@
               <em id="adjustedHoursNote">평일/주말·컨디션 반영</em>
             </div>
             <div class="metric">
-              <span>권장 견적가</span>
+              <span>최종 권장 견적가</span>
               <strong id="recommendedQuote">0원</strong>
-              <em>난이도/납기 반영</em>
+              <em id="quoteBasisNote">롱폼 분당 기준 · 난이도/납기 반영</em>
             </div>
           </div>
 
           <div class="divider"></div>
 
           <div class="quote-box">
+            <div class="quote-line">
+              <span>시간 기준 권장가</span>
+              <strong id="hourlyRecommendedQuote">0원</strong>
+            </div>
+            <div class="quote-line">
+              <span>분당 기준 권장가</span>
+              <strong id="minuteRecommendedQuote">0원</strong>
+            </div>
+            <div class="quote-line">
+              <span>최종 적용 기준</span>
+              <strong id="quoteBasis">롱폼 분당</strong>
+            </div>
             <div class="quote-line">
               <span>인건비</span>
               <strong id="laborCost">0원</strong>
@@ -2044,7 +2065,7 @@
               <input id="useAiFrameAnalysis" type="checkbox">
               자동 API 분석 사용 · 추출 프레임 최대 6장을 보안 서버로 전송하며 별도 API 사용료 발생
             </label>
-            <small class="field-note">YouTube 링크는 제목 기반 1차 분석만 가능합니다. 프레임 판독은 영상 파일을 선택해 직접 분석한 뒤, 아래 ChatGPT 절차를 사용하세요.</small>
+            <small class="field-note">링크는 공개 정보로 1차 분석하고 ChatGPT 요청문을 자동 생성합니다. 프레임 판독이 필요하면 영상 파일을 선택하세요.</small>
             <video id="referenceVideo" muted playsinline preload="metadata" hidden></video>
             <canvas id="referenceFrameCanvas" hidden></canvas>
             <div class="reference-result" id="referenceResult" hidden>
@@ -2069,7 +2090,7 @@
             <div class="chatgpt-bridge" id="chatgptBridge" hidden>
               <div class="chatgpt-bridge-header">
                 <strong>무료 · 구독 중인 ChatGPT로 분석</strong>
-                <span>대표 프레임 묶음과 분석문을 ChatGPT에 전달한 뒤, 답변을 아래에 붙여넣으세요.</span>
+                <span id="chatgptBridgeDescription">레퍼런스 링크 또는 대표 프레임과 분석문을 ChatGPT에 전달한 뒤, 답변을 아래에 붙여넣으세요.</span>
               </div>
               <div class="chatgpt-bridge-actions">
                 <button class="button primary" id="prepareChatgptAnalysisButton" type="button">프레임·요청문 준비 후 ChatGPT 열기</button>
@@ -2314,7 +2335,7 @@
     const TOPBAR_STORAGE_KEY = "josh-topbar-expanded-v1";
     const SUMMARY_STORAGE_KEY = "josh-summary-collapsed-v1";
     const TODAY_PLAN_STORAGE_KEY = "josh-today-plan-v1";
-    const SETTINGS_VERSION = 5;
+    const SETTINGS_VERSION = 6;
     const PROFIT_SETTINGS_VERSION = 2;
     const FINANCE_STATE_PREFIX = "JOSH_MONTHLY_PLAN_V1:";
     const SUBSCRIPTION_STATE_PREFIX = "JOSH_SERVICE_V1:";
@@ -2456,6 +2477,7 @@
       "condition",
       "difficulty",
       "rush",
+      "quoteMode",
       "dailyHours",
       "workdayMode",
       "startDate",
@@ -2726,6 +2748,22 @@
           : quote.rates.highMin === quote.rates.highMax
             ? `${quote.cameraCount}캠 · 최종본 분당 ${formatKrw(quote.rates.highMin)}`
             : `${quote.cameraCount}캠 · 최종본 분당 ${formatKrw(quote.rates.highMin)}~${formatKrw(quote.rates.highMax)}`;
+    }
+
+    function adjustedLongformQuote(longform, difficulty, rush, referenceState = null) {
+      let difficultyQuote = longform.recommendedQuote;
+      if (difficulty >= 1.8) difficultyQuote = longform.highQuoteMax;
+      else if (difficulty >= 1.5) difficultyQuote = longform.highQuoteMin;
+
+      const referenceSurcharge = Math.max(0, Number(referenceState?.surchargePerMinute) || 0);
+      const referenceQuote = longform.recommendedQuote + (longform.minutes * referenceSurcharge);
+      const recommended = roundToThousand(Math.max(difficultyQuote, referenceQuote) * rush);
+      const minimum = roundToThousand(longform.floorQuote * rush);
+      return {
+        recommended,
+        minimum,
+        referenceSurcharge
+      };
     }
 
     function normalizeReferenceUrl(value) {
@@ -3051,13 +3089,20 @@
     }
 
     function buildChatgptAnalysisPrompt(state) {
-      if (!state?.sourceType?.startsWith("frame-") || !state.frames?.length) return "";
+      if (!state) return "";
+      const hasFrames = Boolean(state.sourceType?.startsWith("frame-") && state.frames?.length);
+      const hasLink = Boolean(state.url);
+      if (!hasFrames && !hasLink) return "";
       const longform = getLongformQuoteValues();
       const metrics = state.metrics || {};
       return [
-        "아래에 함께 올린 이미지는 영상 레퍼런스에서 시간순으로 추출한 대표 프레임입니다.",
+        hasFrames
+          ? "아래에 함께 올린 이미지는 영상 레퍼런스에서 시간순으로 추출한 대표 프레임입니다."
+          : "아래 레퍼런스 링크를 열어 영상의 화면 구성과 편집 스타일을 확인해주세요.",
         "당신은 한국 영상 편집 외주 견적을 산정하는 시니어 포스트프로덕션 디렉터입니다.",
-        "프레임을 직접 비교해 화면에 실제로 보이는 편집 난도를 판단해주세요.",
+        hasFrames
+          ? "프레임을 직접 비교해 화면에 실제로 보이는 편집 난도를 판단해주세요."
+          : "링크에서 실제로 확인되는 내용만 근거로 편집 난도를 판단해주세요.",
         "",
         "판단 요소:",
         "- 모션그래픽, 합성, 마스킹, 화면 분할",
@@ -3067,12 +3112,16 @@
         "- 반복 제작 부담",
         "",
         "보이지 않는 오디오 상태, 원본 촬영 길이, 작업자의 실력은 추측하지 마세요.",
+        hasLink ? `레퍼런스 링크: ${state.url}` : "",
         `영상명: ${state.title || state.sourceLabel || "레퍼런스 영상"}`,
         `견적 조건: 최종본 ${longform.minutes}분, ${longform.cameraCount}캠`,
-        `기기 분석 수치: 장면 변화 ${Math.round((metrics.sceneChange || 0) * 100)}%, ` +
-          `화면 디테일 ${Math.round((metrics.detailDensity || 0) * 100)}%, ` +
-          `명암 대비 ${Math.round(metrics.contrast || 0)}/100, ` +
-          `색 밀도 ${Math.round((metrics.saturation || 0) * 100)}%`,
+        `편집 범위: ${longform.scope.label}`,
+        hasFrames
+          ? `기기 분석 수치: 장면 변화 ${Math.round((metrics.sceneChange || 0) * 100)}%, ` +
+            `화면 디테일 ${Math.round((metrics.detailDensity || 0) * 100)}%, ` +
+            `명암 대비 ${Math.round(metrics.contrast || 0)}/100, ` +
+            `색 밀도 ${Math.round((metrics.saturation || 0) * 100)}%`
+          : "영상 재생이나 화면 확인이 불가능하면 내용을 추측하지 말고 confidence를 0.3 이하로 낮추세요.",
         "",
         "설명 문장이나 마크다운 없이 아래 JSON 형식만 반환하세요.",
         "{",
@@ -3258,15 +3307,24 @@
       window.open("https://chatgpt.com/", "_blank", "noopener,noreferrer");
 
       try {
-        status.textContent = "프레임 묶음 저장과 요청문 복사를 준비하고 있습니다.";
+        const hasFrames = Boolean(referenceAnalysisState?.frames?.length);
+        status.textContent = hasFrames
+          ? "프레임 묶음 저장과 요청문 복사를 준비하고 있습니다."
+          : "링크 분석 요청문을 복사하고 있습니다.";
         const copyPromise = copyTextWithFallback(prompt, promptField);
-        const downloadPromise = downloadChatgptFrameSheet(referenceAnalysisState);
+        const downloadPromise = hasFrames
+          ? downloadChatgptFrameSheet(referenceAnalysisState)
+          : Promise.resolve("");
         const [copied, fileName] = await Promise.all([copyPromise, downloadPromise]);
         if (copied) {
-          status.textContent = `${fileName}을 첨부하고, ChatGPT 입력창에 붙여넣으세요.`;
+          status.textContent = hasFrames
+            ? `${fileName}을 첨부하고, ChatGPT 입력창에 붙여넣으세요.`
+            : "ChatGPT 입력창에 붙여넣으면 링크와 견적 조건이 함께 전달됩니다.";
           button.textContent = "준비 완료";
         } else {
-          status.textContent = `${fileName}을 첨부하세요. 자동 복사가 막혀 요청문을 선택했으니 직접 복사한 뒤 붙여넣으세요.`;
+          status.textContent = hasFrames
+            ? `${fileName}을 첨부하세요. 자동 복사가 막혀 요청문을 선택했으니 직접 복사한 뒤 붙여넣으세요.`
+            : "자동 복사가 막혀 요청문을 선택했습니다. 직접 복사한 뒤 ChatGPT에 붙여넣으세요.";
           button.textContent = "요청문 직접 복사 필요";
         }
       } catch (error) {
@@ -3302,8 +3360,8 @@
 
     function applyChatgptAnalysisResult() {
       const status = document.getElementById("chatgptBridgeStatus");
-      if (!referenceAnalysisState?.sourceType?.startsWith("frame-")) {
-        status.textContent = "먼저 영상 프레임을 분석해주세요.";
+      if (!referenceAnalysisState) {
+        status.textContent = "먼저 레퍼런스 링크 또는 영상 프레임을 분석해주세요.";
         return;
       }
       try {
@@ -3321,7 +3379,7 @@
           analysisMode: "chatgpt-subscription",
           aiDetails: analysis,
           localReason,
-          reason: `ChatGPT 프레임 판독: ${analysis.summary} ${localReason}`,
+          reason: `ChatGPT 레퍼런스 분석: ${analysis.summary} ${localReason}`,
           estimatedQuote: Math.max(
             longform.rates.minimumFee,
             longform.recommendedQuote + (longform.minutes * analysis.surchargePerMinute)
@@ -3333,7 +3391,7 @@
         saveState();
         status.textContent = "구독 중인 ChatGPT 분석 결과를 견적에 반영했습니다.";
         document.getElementById("copyState").textContent =
-          "무료 ChatGPT 프레임 분석 결과가 난이도와 권장 견적에 반영됐습니다.";
+          "무료 ChatGPT 레퍼런스 분석 결과가 난이도와 권장 견적에 반영됐습니다.";
       } catch (error) {
         status.textContent = error.message || "ChatGPT 답변을 반영하지 못했습니다.";
       }
@@ -3341,19 +3399,29 @@
 
     function renderChatgptBridge(state) {
       const bridge = document.getElementById("chatgptBridge");
-      const isReady = Boolean(state?.sourceType?.startsWith("frame-") && state.frames?.length);
+      const hasFrames = Boolean(state?.sourceType?.startsWith("frame-") && state.frames?.length);
+      const hasLink = Boolean(state?.url);
+      const isReady = hasFrames || hasLink;
       bridge.hidden = !isReady;
       if (!isReady) {
         document.getElementById("chatgptPromptText").value = "";
         return;
       }
       document.getElementById("prepareChatgptAnalysisButton").disabled = false;
+      document.getElementById("prepareChatgptAnalysisButton").textContent = hasFrames
+        ? "프레임·요청문 준비 후 ChatGPT 열기"
+        : "요청문 복사 후 ChatGPT 열기";
       document.getElementById("applyChatgptAnalysisButton").disabled = false;
       document.getElementById("chatgptPromptText").value = buildChatgptAnalysisPrompt(state);
+      document.getElementById("chatgptBridgeDescription").textContent = hasFrames
+        ? "대표 프레임 묶음과 분석문을 ChatGPT에 전달한 뒤, 답변을 아래에 붙여넣으세요."
+        : "레퍼런스 링크와 현재 견적 조건이 포함된 요청문을 ChatGPT에 붙여넣으세요.";
       document.getElementById("chatgptBridgeStatus").textContent =
         state.analysisMode === "chatgpt-subscription"
           ? "구독 중인 ChatGPT 분석 결과가 적용되어 있습니다."
-          : "버튼을 누른 뒤 ChatGPT에서 저장된 프레임 이미지를 첨부하고 붙여넣으세요.";
+          : hasFrames
+            ? "버튼을 누른 뒤 ChatGPT에서 저장된 프레임 이미지를 첨부하고 붙여넣으세요."
+            : "버튼을 누르면 요청문이 복사되고 ChatGPT가 열립니다.";
     }
 
     async function requestAiFrameAnalysis(frames, localAnalysis, title) {
@@ -3639,7 +3707,7 @@
           error.message || "레퍼런스 분석에 실패했습니다.";
       } finally {
         button.disabled = false;
-        button.textContent = "링크 분석";
+        button.textContent = "링크 1차 분석";
         saveState();
       }
     }
@@ -5045,14 +5113,6 @@
       ) {
         referenceAnalysisState = null;
         renderReferenceAnalysis(null);
-      } else if (referenceAnalysisState) {
-        const currentLongform = getLongformQuoteValues();
-        referenceAnalysisState.estimatedQuote = Math.max(
-          currentLongform.rates.minimumFee,
-          currentLongform.recommendedQuote +
-            (currentLongform.minutes * referenceAnalysisState.surchargePerMinute)
-        );
-        renderReferenceAnalysis(referenceAnalysisState);
       }
       const total = toolCostTotal();
       const cashCost = cashSubscriptionTotal();
@@ -5068,17 +5128,45 @@
       const projectPrice = Math.max(0, numberValue("projectPrice"));
       const dailyHours = Math.max(0.5, numberValue("dailyHours"));
       const workdayMode = document.getElementById("workdayMode").value;
+      const quoteMode = document.getElementById("quoteMode").value;
 
       const costPerProject = total / monthlyProjects;
       const costPerHour = total / monthlyHours;
       const adjustedHours = baseHours + conditionDelay;
       const laborCost = adjustedHours * hourlyRate * difficulty * rush;
       const toolAllocation = adjustedHours * costPerHour;
-      const recommendedQuote = roundToThousand(laborCost + toolAllocation);
-      const minimumQuote = roundToThousand((adjustedHours * hourlyRate) + toolAllocation);
+      const hourlyRecommendedQuote = roundToThousand(laborCost + toolAllocation);
+      const hourlyMinimumQuote = roundToThousand((adjustedHours * hourlyRate) + toolAllocation);
+      const currentLongform = getLongformQuoteValues();
+      const minuteQuote = adjustedLongformQuote(
+        currentLongform,
+        difficulty,
+        rush,
+        referenceAnalysisState
+      );
+      const minuteRecommendedQuote = minuteQuote.recommended;
+      let recommendedQuote = minuteRecommendedQuote;
+      let minimumQuote = minuteQuote.minimum;
+      let quoteBasisLabel = "롱폼 분당";
+      if (quoteMode === "hourly") {
+        recommendedQuote = hourlyRecommendedQuote;
+        minimumQuote = hourlyMinimumQuote;
+        quoteBasisLabel = "예상 작업시간";
+      } else if (quoteMode === "highest") {
+        recommendedQuote = Math.max(hourlyRecommendedQuote, minuteRecommendedQuote);
+        minimumQuote = Math.max(hourlyMinimumQuote, minuteQuote.minimum);
+        quoteBasisLabel = hourlyRecommendedQuote >= minuteRecommendedQuote
+          ? "높은 금액 · 시간 기준"
+          : "높은 금액 · 분당 기준";
+      }
       const premiumQuote = roundToThousand(recommendedQuote * 1.25);
       const actualHourly = adjustedHours > 0 && projectPrice > 0 ? projectPrice / adjustedHours : 0;
       const quoteGap = projectPrice > 0 ? projectPrice - recommendedQuote : 0;
+
+      if (referenceAnalysisState) {
+        referenceAnalysisState.estimatedQuote = minuteRecommendedQuote;
+        renderReferenceAnalysis(referenceAnalysisState);
+      }
 
       document.getElementById("monthlyTotal").textContent = formatKrw(total);
       document.getElementById("selectedCount").textContent = `선택 ${enabledCount}개 · 실지출 ${formatKrw(cashCost)} / 견적용 ${formatKrw(allocatedCost)}`;
@@ -5086,6 +5174,10 @@
       document.getElementById("costPerHour").textContent = formatKrw(costPerHour);
       if (document.getElementById("monthlyRevenue")) calculateProfit();
       document.getElementById("recommendedQuote").textContent = formatKrw(recommendedQuote);
+      document.getElementById("hourlyRecommendedQuote").textContent = formatKrw(hourlyRecommendedQuote);
+      document.getElementById("minuteRecommendedQuote").textContent = formatKrw(minuteRecommendedQuote);
+      document.getElementById("quoteBasis").textContent = quoteBasisLabel;
+      document.getElementById("quoteBasisNote").textContent = `${quoteBasisLabel} · 난이도/납기 반영`;
       document.getElementById("laborCost").textContent = formatKrw(laborCost);
       document.getElementById("toolAllocation").textContent = formatKrw(toolAllocation);
       document.getElementById("minimumQuote").textContent = formatKrw(minimumQuote);
@@ -5187,6 +5279,10 @@
         "추가금: 고급 모션그래픽·자료 삽입 +5,000~10,000원/분, 오디오 보정 +30,000~50,000원, 수정 2회차부터 +20~30%, 급행 +30%",
         "",
         "시간당 계산",
+        `최종 견적 기준: ${document.getElementById("quoteBasis").textContent}`,
+        `시간 기준 권장가: ${document.getElementById("hourlyRecommendedQuote").textContent}`,
+        `분당 기준 권장가: ${document.getElementById("minuteRecommendedQuote").textContent}`,
+        `최종 권장 견적가: ${document.getElementById("recommendedQuote").textContent}`,
         `월 프로그램 원가 추정: ${document.getElementById("monthlyTotal").textContent}`,
         `건당 프로그램비: ${document.getElementById("costPerProject").textContent}`,
         `시간당 프로그램비: ${document.getElementById("costPerHour").textContent}`,
@@ -5257,6 +5353,7 @@
       document.getElementById("condition").value = "0.5";
       document.getElementById("difficulty").value = "1.25";
       document.getElementById("rush").value = "1";
+      document.getElementById("quoteMode").value = "longform";
       document.getElementById("dailyHours").value = "3";
       document.getElementById("workdayMode").value = "weekdays";
       document.getElementById("startDate").value = "";
@@ -5311,6 +5408,7 @@
       document.getElementById("condition").value = "0";
       document.getElementById("difficulty").value = "1.8";
       document.getElementById("rush").value = "1";
+      document.getElementById("quoteMode").value = "longform";
       document.getElementById("dailyHours").value = "5";
       document.getElementById("workdayMode").value = "weekdays";
       document.getElementById("longformFinalMinutes").value = "15";
@@ -5342,6 +5440,7 @@
       document.getElementById("longformScope").value = scopeKey;
       document.getElementById("hourlyRate").value = "50000";
       document.getElementById("projectPrice").value = String(projectPrice);
+      document.getElementById("quoteMode").value = "longform";
       calculate();
       document.getElementById("copyState").textContent =
         `이번 3캠 견적을 적용했습니다: 최종본 10분 · ${scope.label} · 제안가 ${formatKrw(projectPrice)}. 예상 작업시간은 실제 조건에 맞게 따로 입력하세요.`;
