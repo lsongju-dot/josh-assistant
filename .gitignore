@@ -4,3 +4,4 @@ josh-github-pages.zip
 *.log
 edge-profile/
 edge-mobile-profile/
+tests/artifacts/

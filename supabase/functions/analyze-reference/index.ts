@@ -6,14 +6,26 @@ const corsHeaders = {
 
 type AnalyzeRequest = {
   title?: string;
-  frames?: string[];
-  localMetrics?: {
-    sceneChange?: number;
-    detailDensity?: number;
-    contrast?: number;
-    saturation?: number;
-  };
+  url?: string;
 };
+
+function youtubeVideoId(value: unknown) {
+  if (typeof value !== "string" || value.length > 2_000) return "";
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+    const parts = url.pathname.split("/").filter(Boolean);
+    let id = "";
+    if (host === "youtu.be") id = parts[0] || "";
+    else if (host === "youtube.com" || host.endsWith(".youtube.com")) {
+      if (url.pathname === "/watch") id = url.searchParams.get("v") || "";
+      else if (["shorts", "embed", "live"].includes(parts[0])) id = parts[1] || "";
+    }
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : "";
+  } catch {
+    return "";
+  }
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -23,14 +35,6 @@ function jsonResponse(body: unknown, status = 200) {
       "Content-Type": "application/json; charset=utf-8",
     },
   });
-}
-
-function validFrame(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    value.startsWith("data:image/jpeg;base64,") &&
-    value.length <= 500_000
-  );
 }
 
 function extractOutputText(response: Record<string, unknown>) {
@@ -77,38 +81,42 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: "Invalid JSON body" }, 400);
   }
 
-  const frames = Array.isArray(body.frames)
-    ? body.frames.filter(validFrame).slice(0, 6)
-    : [];
-  if (frames.length < 2) {
-    return jsonResponse({ error: "At least two valid frames are required" }, 400);
+  const videoId = youtubeVideoId(body.url);
+  if (!videoId) {
+    return jsonResponse({ error: "A supported public YouTube URL is required" }, 400);
   }
+  const publicFrames = ["0", "1", "2", "3"].map((slot) =>
+    `https://i.ytimg.com/vi/${videoId}/${slot}.jpg`
+  );
 
-  const metrics = body.localMetrics || {};
   const prompt = [
     "당신은 한국 영상 편집 외주 견적을 산정하는 시니어 포스트프로덕션 디렉터다.",
-    "시간순으로 추출된 레퍼런스 프레임을 직접 비교해 화면에 실제로 보이는 편집 난도를 판단한다.",
+    "입력 이미지는 공개 YouTube 링크의 서로 다른 대표 장면이다. 영상 전체나 오디오가 아니므로 실제로 보이는 시각 요소만 판단한다.",
     "판단 요소: 모션그래픽, 합성, 마스킹, 화면 분할, 자막·타이포그래피 밀도, 스톡 자료 사용량,",
     "색보정 난도, 전환 빈도, 제품 광고 연출, AI/VFX 흔적, 반복 제작 부담.",
-    "보이지 않는 오디오 상태나 원본 촬영 길이는 추측하지 않는다.",
+    "세로형 숏폼인지 가로형 롱폼인지 contentType으로 분류한다.",
+    "서로 다른 구도와 촬영 각도가 실제로 보일 때만 원본 카메라 수를 1~3캠으로 추정한다.",
+    "컷 수, 화면 자료, 크롭 변화는 별도 카메라로 세지 않는다. 근거가 부족하면 estimatedCameraCount는 null로 둔다.",
+    "보이지 않는 오디오 상태, 원본 촬영 길이, 정확한 컷 빈도는 추측하지 않는다.",
     "difficulty는 basic, medium, high 중 하나다.",
     `영상 제목: ${String(body.title || "레퍼런스 영상").slice(0, 200)}`,
-    `기기 측 수치: 장면 변화 ${Number(metrics.sceneChange || 0).toFixed(3)}, ` +
-      `화면 디테일 ${Number(metrics.detailDensity || 0).toFixed(3)}, ` +
-      `대비 ${Number(metrics.contrast || 0).toFixed(1)}, ` +
-      `색 밀도 ${Number(metrics.saturation || 0).toFixed(3)}`,
+    "대표 장면만으로 확정할 수 없는 요소가 많으면 confidence를 낮춘다.",
     "summary와 editingSignals는 한국어로 작성한다.",
   ].join("\n");
 
   const content = [
     { type: "input_text", text: prompt },
-    ...frames.map((imageUrl) => ({
+    ...publicFrames.map((imageUrl) => ({
       type: "input_image",
       image_url: imageUrl,
-      detail: "low",
+      detail: "high",
     })),
   ];
 
+  const configuredModel = String(Deno.env.get("OPENAI_MODEL") || "").trim();
+  const model = configuredModel === "gpt-5.6-luna"
+    ? "gpt-5.6"
+    : configuredModel || "gpt-5.6";
   const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -116,7 +124,7 @@ Deno.serve(async (request) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: Deno.env.get("OPENAI_MODEL") || "gpt-5.6-luna",
+      model,
       store: false,
       reasoning: { effort: "low" },
       input: [{ role: "user", content }],
@@ -145,8 +153,40 @@ Deno.serve(async (request) => {
                 minimum: 0,
                 maximum: 1,
               },
+              contentType: {
+                type: "string",
+                enum: ["shortform", "longform", "unknown"],
+              },
+              estimatedCameraCount: {
+                anyOf: [
+                  { type: "integer", minimum: 1, maximum: 3 },
+                  { type: "null" },
+                ],
+              },
+              cameraConfidence: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+              },
+              cameraReason: {
+                type: "string",
+              },
+              editingPace: {
+                type: "string",
+                enum: ["slow", "medium", "fast", "unknown"],
+              },
             },
-            required: ["difficulty", "summary", "editingSignals", "confidence"],
+            required: [
+              "difficulty",
+              "summary",
+              "editingSignals",
+              "confidence",
+              "contentType",
+              "estimatedCameraCount",
+              "cameraConfidence",
+              "cameraReason",
+              "editingPace",
+            ],
             additionalProperties: false,
           },
         },
@@ -154,10 +194,18 @@ Deno.serve(async (request) => {
     }),
   });
 
-  const openAiBody = await openAiResponse.json();
+  let openAiBody: Record<string, unknown>;
+  try {
+    openAiBody = await openAiResponse.json();
+  } catch {
+    return jsonResponse({ error: "OpenAI returned an unreadable response" }, 502);
+  }
   if (!openAiResponse.ok) {
+    const apiMessage = openAiBody.error && typeof openAiBody.error === "object"
+      ? String((openAiBody.error as { message?: unknown }).message || "")
+      : "";
     return jsonResponse({
-      error: "OpenAI frame analysis failed",
+      error: apiMessage || "OpenAI frame analysis failed",
       status: openAiResponse.status,
     }, 502);
   }
@@ -168,7 +216,15 @@ Deno.serve(async (request) => {
   }
 
   try {
-    return jsonResponse({ analysis: JSON.parse(outputText) });
+    return jsonResponse({
+      analysis: JSON.parse(outputText),
+      sourceMode: "youtube-public-thumbnails",
+      frames: publicFrames.map((image, index) => ({
+        image,
+        label: `대표 장면 ${index + 1}`,
+      })),
+      model,
+    });
   } catch {
     return jsonResponse({ error: "OpenAI returned invalid structured output" }, 502);
   }
