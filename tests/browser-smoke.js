@@ -119,7 +119,7 @@ let browserInstance;
                       }
                     },
                     frames: [0, 1, 2, 3].map((index) => ({
-                      image: "https://i.ytimg.com/vi/K36Et8h552w/" + index + ".jpg",
+                      image: "https://i.ytimg.com/vi/7c1lkYje1f0/" + index + ".jpg",
                       label: "대표 장면 " + (index + 1)
                     }))
                   },
@@ -135,8 +135,8 @@ let browserInstance;
   await page.route("https://www.youtube.com/oembed**", (route) => route.fulfill({
     contentType: "application/json",
     body: JSON.stringify({
-      title: "테스트 레퍼런스",
-      thumbnail_url: "https://i.ytimg.com/vi/K36Et8h552w/hqdefault.jpg"
+      title: "아직도 영어 학원 찾아다녀? 엄마 맘에 쏙 드는 '캐츠잉글리시!' [리뷰스마][광고]",
+      thumbnail_url: "https://i.ytimg.com/vi/7c1lkYje1f0/hqdefault.jpg"
     })
   }));
   await page.route("https://i.ytimg.com/**", (route) => route.fulfill({
@@ -251,7 +251,7 @@ let browserInstance;
     "local video stays on device"
   );
 
-  const referenceUrl = "https://www.youtube.com/watch?v=K36Et8h552w";
+  const referenceUrl = "https://youtu.be/7c1lkYje1f0?si=lJ2h7Q3nbJfwBkze";
   await page.fill("#referenceUrl", referenceUrl);
   await page.evaluate(() => { document.getElementById("useAiFrameAnalysis").checked = false; updateReferenceAnalysisMode(); });
   await page.click("#analyzeReferenceButton");
@@ -259,7 +259,8 @@ let browserInstance;
   const generatedPrompt = await page.inputValue("#chatgptPromptText");
   check(generatedPrompt.includes(referenceUrl), "ChatGPT prompt generation", generatedPrompt.slice(0, 240));
   check(generatedPrompt.includes("B-roll") && generatedPrompt.includes('"visualEvidence"'), "ChatGPT prompt asks for detailed visual evidence");
-  check(generatedPrompt.includes("needsFrameEvidence") && generatedPrompt.includes("confidence는 0.25 이하"), "ChatGPT prompt handles inaccessible videos");
+  check(generatedPrompt.includes("7c1lkYje1f0") && generatedPrompt.includes("maxresdefault.jpg"), "ChatGPT prompt includes public YouTube thumbnail fallbacks");
+  check(generatedPrompt.includes("needsFrameEvidence") && generatedPrompt.includes("confidence는 0.25~0.45"), "ChatGPT prompt handles inaccessible videos with provisional estimates");
   const popupPromise = page.waitForEvent("popup");
   await page.click("#prepareChatgptAnalysisButton");
   const popup = await popupPromise;
@@ -284,26 +285,21 @@ let browserInstance;
   await page.click("#applyReferenceSuggestionsButton");
   check(await page.inputValue("#shortformCameras") === "2", "confirmed AI camera estimate applied");
 
+  await page.selectOption("#difficulty", "1.25");
   await page.fill("#chatgptAnalysisResult", JSON.stringify({
     difficulty: "medium",
-    summary: "영상 재생이 불가능해 프레임 증거가 필요합니다.",
-    editingSignals: ["영상 재생 불가"],
+    summary: "YouTube 영상 페이지와 영상 제목은 확인되지만 실제 영상 재생 및 시간대별 프레임 확인이 불가능해 화면 구성과 편집 스타일을 신뢰성 있게 판정할 수 없습니다.",
+    editingSignals: [
+      "영상 페이지와 제목 존재는 확인됨",
+      "실제 영상 프레임 및 화면 전환 확인 불가",
+      "B-roll·그래픽·모션그래픽 사용량 확인 불가"
+    ],
     confidence: 0.12,
     contentType: "unknown",
     estimatedCameraCount: null,
     cameraConfidence: 0.03,
-    cameraReason: "프레임을 확인할 수 없습니다.",
+    cameraReason: "실제 영상 프레임을 확인할 수 없어 동일 피사체가 서로 다른 촬영 각도나 구도로 등장하는지 비교할 근거가 없습니다.",
     editingPace: "unknown",
-    needsFrameEvidence: true,
-    visualEvidence: {
-      camera: [],
-      broll: [],
-      graphics: [],
-      subtitles: [],
-      motion: [],
-      pacing: [],
-      missing: ["대표 프레임 시트가 필요합니다."]
-    },
     workFactors: {
       cutDensity: "unknown",
       subtitleDensity: "unknown",
@@ -321,8 +317,13 @@ let browserInstance;
     }
   }));
   await page.click("#applyChatgptAnalysisButton");
-  check(!(await page.isVisible("#referenceApplyPanel")), "low-confidence ChatGPT result is not offered for quote application");
-  check((await page.textContent("#referenceInputStatus")).includes("증거가 부족"), "low-confidence ChatGPT result asks for frame evidence");
+  check(await page.isVisible("#referenceApplyPanel"), "legacy low-confidence ChatGPT result is offered as provisional quote draft");
+  check((await page.textContent("#referenceInputStatus")).includes("보수 추정"), "legacy low-confidence ChatGPT result is labeled provisional");
+  check((await page.textContent("#referenceEvidenceList")).includes("공개 썸네일"), "legacy low-confidence ChatGPT result asks for thumbnail evidence");
+  check(await page.isDisabled("#applyReferenceCamera"), "legacy low-confidence camera estimate cannot be applied");
+  check(await page.inputValue("#difficulty") === "1.25", "legacy low-confidence difficulty does not silently apply");
+  await page.click("#applyReferenceSuggestionsButton");
+  check(await page.inputValue("#difficulty") === "1.5", "confirmed provisional ChatGPT difficulty applies");
 
   await page.fill("#chatgptAnalysisResult", JSON.stringify({
     difficulty: "high",

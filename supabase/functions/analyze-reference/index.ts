@@ -101,8 +101,9 @@ Deno.serve(async (request) => {
     "컷 리듬: 장면 변화, 점프컷, 줌/리프레임, 전환 효과가 많은지 본다.",
     "세로형 숏폼인지 가로형 롱폼인지 contentType으로 분류한다.",
     "대표 장면만으로 확정할 수 없는 요소가 많으면 confidence를 낮추고 needsFrameEvidence를 true로 둔다.",
+    "그래도 견적 초안이 필요하므로 보이는 썸네일 근거와 제목 단서로 basic/medium/high 중 보수 추정 난이도를 산출한다.",
     "보이지 않는 오디오 상태, 원본 촬영 길이, 정확한 컷 빈도는 추측하지 않는다.",
-    "difficulty는 basic, medium, high 중 하나다.",
+    "difficulty는 unknown, basic, medium, high 중 하나다. unknown은 입력 이미지와 제목이 모두 무의미해서 견적 초안도 만들 수 없을 때만 쓴다.",
     `영상 제목: ${String(body.title || "레퍼런스 영상").slice(0, 200)}`,
     "summary, editingSignals, visualEvidence는 한국어로 작성한다.",
     "workFactors는 컷 밀도, 자막, 자료 삽입, B-roll, 모션, 마스킹, 리프레임, 효과음, 음악, 색보정, 조사, 멀티캠의 화면상 근거를 low/medium/high/unknown으로 나눠 작성한다.",
@@ -142,7 +143,7 @@ Deno.serve(async (request) => {
             properties: {
               difficulty: {
                 type: "string",
-                enum: ["basic", "medium", "high"],
+                enum: ["unknown", "basic", "medium", "high"],
               },
               summary: {
                 type: "string",
