@@ -102,6 +102,7 @@ Deno.serve(async (request) => {
     `영상 제목: ${String(body.title || "레퍼런스 영상").slice(0, 200)}`,
     "대표 장면만으로 확정할 수 없는 요소가 많으면 confidence를 낮춘다.",
     "summary와 editingSignals는 한국어로 작성한다.",
+    "workFactors는 컷 밀도, 자막, 자료 삽입, B-roll, 모션, 마스킹, 리프레임, 효과음, 음악, 색보정, 조사, 멀티캠의 화면상 근거를 low/medium/high/unknown으로 나눠 작성한다.",
   ].join("\n");
 
   const content = [
@@ -175,6 +176,30 @@ Deno.serve(async (request) => {
                 type: "string",
                 enum: ["slow", "medium", "fast", "unknown"],
               },
+              workFactors: {
+                type: "object",
+                properties: {
+                  cutDensity: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  subtitleDensity: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  pointTypography: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  inserts: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  broll: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  motionGraphics: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  maskingTracking: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  zoomReframe: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  soundEffects: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  musicEditing: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  color: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  research: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                  multicam: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+                },
+                required: [
+                  "cutDensity", "subtitleDensity", "pointTypography", "inserts", "broll",
+                  "motionGraphics", "maskingTracking", "zoomReframe", "soundEffects", "musicEditing",
+                  "color", "research", "multicam",
+                ],
+                additionalProperties: false,
+              },
             },
             required: [
               "difficulty",
@@ -186,6 +211,7 @@ Deno.serve(async (request) => {
               "cameraConfidence",
               "cameraReason",
               "editingPace",
+              "workFactors",
             ],
             additionalProperties: false,
           },

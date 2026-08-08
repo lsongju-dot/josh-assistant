@@ -147,6 +147,11 @@ check(!edge.includes("body.frames") && !edge.includes("localMetrics"), "local vi
 check(!scripts[0].includes("requestAiFrameAnalysis"), "client does not send local frames to automatic API analysis");
 check(!scripts[0].includes("setTimeout(analyzeReference"), "reference links never auto-trigger API analysis");
 check(html.includes('id="subscriptionBudgetLimit"'), "subscription budget control exists");
+check(!scripts[0].includes("window.prompt") && !scripts[0].includes("prompt("), "backup and reset do not use prompt dialogs");
+check(html.includes('id="backupImportDialog"') && html.includes('id="resetDialog"'), "backup and reset confirmation dialogs exist");
+check(html.includes('data-mobile-target="reference"') && html.includes('data-mobile-target="result"'), "mobile quote navigation exists");
+check(scripts[0].includes("pendingReferenceSuggestion") && scripts[0].includes("applyPendingReferenceSuggestions"), "reference analysis requires explicit apply");
+check(edge.includes("workFactors") && scripts[0].includes("referenceFactorLabels"), "AI work factors are itemized");
 check(html.includes("grid-template-columns: repeat(7, minmax(0, 1fr));"), "mobile calendar keeps seven columns");
 check(/josh-cache-v\d+/.test(worker), "service worker cache has a version");
 

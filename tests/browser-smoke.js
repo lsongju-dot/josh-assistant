@@ -53,7 +53,7 @@ let browserInstance;
 (async () => {
   const browser = await chromium.launch({ headless: true });
   browserInstance = browser;
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   page.setDefaultTimeout(10_000);
   const pageErrors = [];
@@ -121,11 +121,16 @@ let browserInstance;
       "base64"
     )
   }));
+  await page.route("https://chatgpt.com/**", (route) => route.fulfill({
+    contentType: "text/html",
+    body: "<title>ChatGPT test</title>"
+  }));
 
   await page.goto(pathToFileURL(path.join(root, "index.html")).href, {
     waitUntil: "domcontentloaded"
   });
   await page.waitForSelector("#quickQuotePanel");
+  await page.screenshot({ path: path.join(artifacts, "desktop-top.png"), fullPage: false });
 
   await page.fill(
     "#quickQuoteText",
@@ -160,26 +165,50 @@ let browserInstance;
   await page.selectOption("#longformCameras", "3");
   await page.evaluate(() => calculate());
   check((await page.textContent("#longformRecommendedQuote")).includes("350,000"), "3cam quote UI");
+  const priceBeforeCondition = await page.textContent("#recommendedQuote");
+  await page.selectOption("#condition", "2");
+  const priceAfterCondition = await page.textContent("#recommendedQuote");
+  check(priceBeforeCondition === priceAfterCondition, "condition changes schedule only, not quote price");
+  await page.selectOption("#difficulty", "1.8");
+  check((await page.textContent("#recommendedQuote")) !== priceAfterCondition, "difficulty changes quote price");
+  await page.selectOption("#rush", "1.2");
+  check((await page.textContent("#quoteBasisNote")).includes("납기"), "rush is reflected in quote basis");
+  for (const mode of ["longform", "hourly", "highest", "shortform"]) {
+    await page.selectOption("#quoteMode", mode);
+    check(/\d/.test(await page.textContent("#recommendedQuote")), `${mode} quote mode calculates`);
+  }
 
   check((await page.textContent("#monthlyRevenue")).includes("2,470,000"), "monthly revenue UI");
+  await page.click('[data-workspace-tab="manage"]');
   const cashBefore = await page.textContent("#subscriptionCashPreview");
   await page.check('input[aria-label="Envato 사용"]');
   const cashAfter = await page.textContent("#subscriptionCashPreview");
   check(cashBefore !== cashAfter, "subscription checkbox updates cash budget immediately");
   await page.fill("#subscriptionBudgetLimit", "200000");
   check((await page.textContent("#subscriptionBudgetRemaining")) !== "상한 미설정", "subscription budget remaining updates");
+  await page.click('[data-workspace-tab="work"]');
+  await page.click("#addScheduleButton");
+  check((await page.textContent("#scheduleFormStatus")).includes("작업명"), "blank schedule is blocked");
   await page.fill("#scheduleName", "브라우저 테스트 작업");
   await page.fill("#scheduleDeadline", "2026-08-12");
   await page.fill("#scheduleHours", "3");
   await page.click("#addScheduleButton");
   check((await page.textContent("#scheduleList")).includes("브라우저 테스트 작업"), "schedule add UI");
 
+  await page.click('[data-workspace-tab="quote"]');
+  await page.fill("#referenceUrl", "");
+  await page.click("#analyzeReferenceButton");
+  check((await page.textContent("#referenceInputStatus")).includes("먼저 입력"), "blank reference validation");
+  await page.fill("#referenceUrl", "not-a-video-link");
+  await page.click("#analyzeReferenceButton");
+  check((await page.textContent("#referenceInputStatus")).includes("https://"), "invalid reference validation");
+
   const testVideoPath = path.join(artifacts, "josh-frame-test.webm");
   await createTestVideo(testVideoPath);
   await page.setInputFiles("#referenceVideoFile", testVideoPath);
   try {
     await page.waitForFunction(
-      () => document.getElementById("copyState").textContent.includes("프레임을 기기 안에서 판독해 견적에 반영"),
+      () => document.getElementById("frameAnalysisStatus").textContent.includes("완료"),
       null,
       { timeout: 30_000 }
     );
@@ -199,14 +228,20 @@ let browserInstance;
 
   const referenceUrl = "https://www.youtube.com/watch?v=K36Et8h552w";
   await page.fill("#referenceUrl", referenceUrl);
-  await page.uncheck("#useAiFrameAnalysis");
+  await page.evaluate(() => { document.getElementById("useAiFrameAnalysis").checked = false; updateReferenceAnalysisMode(); });
   await page.click("#analyzeReferenceButton");
   await page.waitForFunction(() => !document.getElementById("referenceResult").hidden);
   const generatedPrompt = await page.inputValue("#chatgptPromptText");
   check(generatedPrompt.includes(referenceUrl), "ChatGPT prompt generation", generatedPrompt.slice(0, 240));
+  const popupPromise = page.waitForEvent("popup");
+  await page.click("#prepareChatgptAnalysisButton");
+  const popup = await popupPromise;
+  await popup.waitForLoadState("domcontentloaded");
+  check(Boolean(popup), "ChatGPT button opens a new tab");
+  await popup.close();
 
   await page.evaluate(() => { authSession = { user: { id: "test-user" } }; });
-  await page.check("#useAiFrameAnalysis");
+  await page.evaluate(() => { document.getElementById("useAiFrameAnalysis").checked = true; updateReferenceAnalysisMode(); });
   await page.click("#analyzeReferenceButton");
   await page.waitForFunction(() => document.getElementById("copyState").textContent.includes("AI가 공개 대표 장면"));
   const invokeBodies = await page.evaluate(() => window.__invokeBodies);
@@ -216,7 +251,10 @@ let browserInstance;
   check((await page.textContent("#referenceReason")).includes("AI 대표 장면 판독"), "AI analysis rendered");
   check((await page.textContent("#referenceContentType")).includes("숏폼"), "AI content type rendered");
   check((await page.textContent("#referenceCameraCount")).includes("2캠"), "AI camera estimate rendered");
-  check(await page.inputValue("#shortformCameras") === "2", "confident AI camera estimate applied");
+  check(await page.inputValue("#shortformCameras") !== "2", "AI camera estimate does not silently apply");
+  check(await page.isVisible("#referenceApplyPanel"), "AI suggestions require confirmation");
+  await page.click("#applyReferenceSuggestionsButton");
+  check(await page.inputValue("#shortformCameras") === "2", "confirmed AI camera estimate applied");
 
   await page.fill("#chatgptAnalysisResult", JSON.stringify({
     difficulty: "high",
@@ -230,44 +268,80 @@ let browserInstance;
     editingPace: "fast"
   }));
   await page.click("#applyChatgptAnalysisButton");
-  check(await page.inputValue("#difficulty") === "1.8", "ChatGPT result applies difficulty");
+  check(await page.inputValue("#difficulty") !== "1.8", "ChatGPT difficulty does not silently apply");
+  await page.click("#applyReferenceSuggestionsButton");
+  check(await page.inputValue("#difficulty") === "1.8", "confirmed ChatGPT difficulty applies");
+
+  await page.click("#topbarToggleButton");
+  await page.click("#exportButton");
+  const backupText = await page.evaluate(() => navigator.clipboard?.readText?.().catch(() => ""));
+  await page.click("#importButton");
+  await page.fill("#backupImportText", "{bad json");
+  check((await page.textContent("#backupImportError")).includes("JSON"), "invalid backup shows friendly error");
+  await page.fill("#backupImportText", backupText || JSON.stringify({ version: 2, controls: { longformFinalMinutes: "10" }, services: [], schedules: [] }));
+  check(!(await page.isDisabled("#applyBackupImportButton")), "backup preview enables apply");
+  await page.click("#applyBackupImportButton");
+  check(!(await page.isVisible("#backupImportDialog")), "backup applies from modal");
+  const scheduleCountBeforeReset = await page.evaluate(() => schedules.length);
+  await page.evaluate(() => resetAll());
+  check(await page.isVisible("#resetDialog"), "reset opens scope confirmation");
+  await page.click("#cancelResetButton");
+  check(await page.evaluate(() => schedules.length) === scheduleCountBeforeReset, "cancelled reset preserves schedules");
 
   await page.screenshot({ path: path.join(artifacts, "desktop.png"), fullPage: false });
   await page.locator("#shortformCalculator").screenshot({ path: path.join(artifacts, "desktop-shortform.png") });
+  await page.click('[data-workspace-tab="manage"]');
   await page.locator("#servicesPanel").screenshot({ path: path.join(artifacts, "desktop-subscriptions.png") });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.evaluate(() => window.scrollTo(0, 0));
-  const mobileLayout = await page.evaluate(() => {
-    const y = (id) => document.getElementById(id).getBoundingClientRect().top + window.scrollY;
-    const overflowing = [...document.querySelectorAll(".panel, button, input, select, textarea")]
-      .filter((element) => {
-        const style = getComputedStyle(element);
-        if (style.display === "none" || style.visibility === "hidden") return false;
-        const rect = element.getBoundingClientRect();
-        return rect.left < -1 || rect.right > window.innerWidth + 1;
-      })
-      .map((element) => element.id || element.className)
-      .slice(0, 10);
-    return {
-      width: document.documentElement.scrollWidth,
-      viewport: window.innerWidth,
-      order: [y("todayPanel"), y("quickQuotePanel"), y("schedulePanel")],
-      calendarColumns: getComputedStyle(document.getElementById("calendarGrid")).gridTemplateColumns.split(" ").length,
-      visibleDayHeaders: [...document.querySelectorAll(".calendar-day-name")]
-        .filter((element) => getComputedStyle(element).display !== "none").length,
-      overflowing
-    };
-  });
-  check(mobileLayout.width <= mobileLayout.viewport, "mobile page has no horizontal overflow", JSON.stringify(mobileLayout));
-  check(
-    mobileLayout.order[0] < mobileLayout.order[1] && mobileLayout.order[1] < mobileLayout.order[2],
-    "mobile section order",
-    JSON.stringify(mobileLayout.order)
-  );
-  check(!mobileLayout.overflowing.length, "mobile controls stay inside viewport", mobileLayout.overflowing.join(", "));
-  check(mobileLayout.calendarColumns === 7, "mobile calendar keeps seven columns", JSON.stringify(mobileLayout));
-  check(mobileLayout.visibleDayHeaders === 7, "mobile calendar keeps weekday headers", JSON.stringify(mobileLayout));
-  await page.locator("#quickQuotePanel").screenshot({ path: path.join(artifacts, "mobile-quick-quote.png") });
+
+  for (const viewport of [
+    { width: 360, height: 780 },
+    { width: 390, height: 844 },
+    { width: 430, height: 932 },
+    { width: 768, height: 1024 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.evaluate(() => setWorkspace("quote"));
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const mobileLayout = await page.evaluate(() => {
+      const overflowing = [...document.querySelectorAll(".panel:not([hidden]), button, input, select, textarea")]
+        .filter((element) => {
+          const style = getComputedStyle(element);
+          if (style.display === "none" || style.visibility === "hidden") return false;
+          const rect = element.getBoundingClientRect();
+          return rect.left < -1 || rect.right > window.innerWidth + 1;
+        })
+        .map((element) => element.id || element.className)
+        .slice(0, 10);
+      const touchTargets = [...document.querySelectorAll("button")]
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return getComputedStyle(element).display !== "none" && rect.width > 0 && rect.height > 0 && rect.height < 44;
+        })
+        .map((element) => element.id || element.textContent.trim())
+        .slice(0, 10);
+      return {
+        width: document.documentElement.scrollWidth,
+        viewport: window.innerWidth,
+        bottomTabs: [...document.querySelectorAll("[data-mobile-target]")].filter((element) => getComputedStyle(element).display !== "none").length,
+        overflowing,
+        touchTargets
+      };
+    });
+    check(mobileLayout.width <= mobileLayout.viewport, `${viewport.width}px has no horizontal overflow`, JSON.stringify(mobileLayout));
+    check(!mobileLayout.overflowing.length, `${viewport.width}px controls stay inside viewport`, mobileLayout.overflowing.join(", "));
+    check(mobileLayout.bottomTabs === 4, `${viewport.width}px mobile tabs visible`);
+    check(!mobileLayout.touchTargets.length, `${viewport.width}px touch targets are at least 44px`, mobileLayout.touchTargets.join(", "));
+    if (viewport.width === 390) {
+      await page.screenshot({ path: path.join(artifacts, "mobile-top.png"), fullPage: false });
+    }
+  }
+  await page.evaluate(() => setWorkspace("work"));
+  const calendarLayout = await page.evaluate(() => ({
+    columns: getComputedStyle(document.getElementById("calendarGrid")).gridTemplateColumns.split(" ").length,
+    headers: [...document.querySelectorAll(".calendar-day-name")].filter((element) => getComputedStyle(element).display !== "none").length
+  }));
+  check(calendarLayout.columns === 7, "mobile calendar keeps seven columns", JSON.stringify(calendarLayout));
+  check(calendarLayout.headers === 7, "mobile calendar keeps weekday headers", JSON.stringify(calendarLayout));
   await page.locator("#calendarPanel").screenshot({ path: path.join(artifacts, "mobile-calendar.png") });
 
   check(!pageErrors.length, "no browser page errors", pageErrors.join(" | "));

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="조쉬">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="./manifest.webmanifest">
-  <title>조쉬 - 구독비 및 편집 단가 계산기</title>
+  <title>조쉬 - 영상편집 견적 비서</title>
   <style>
     :root {
       color-scheme: light;
@@ -1850,6 +1850,407 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Quote-first workspace */
+    .workspace-nav {
+      position: sticky;
+      top: 57px;
+      z-index: 9;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      padding: 8px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(248, 245, 235, 0.96);
+      backdrop-filter: blur(10px);
+    }
+
+    .workspace-tab {
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .workspace-tab:hover,
+    .workspace-tab.is-active {
+      border-color: #b9bda8;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .workspace-tab small {
+      display: block;
+      margin-top: 2px;
+      color: inherit;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .layout[data-workspace="quote"] {
+      grid-template-columns: minmax(360px, 1fr) minmax(520px, 1.35fr) minmax(300px, 360px);
+      max-width: 1500px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .layout[data-workspace="work"],
+    .layout[data-workspace="manage"] {
+      grid-template-columns: repeat(2, minmax(0, 620px));
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .quote-flow-panel {
+      grid-column: 1 / -1;
+      box-shadow: none;
+    }
+
+    .layout[data-workspace="quote"] #quickQuotePanel { grid-column: 1 / 3; grid-row: 2; }
+    .layout[data-workspace="quote"] #longformPanel { grid-column: 1 / 3; grid-row: 3; }
+    .layout[data-workspace="quote"] #settingsPanel { grid-column: 1 / 3; grid-row: 4; }
+    .layout[data-workspace="quote"] #summaryPanel { grid-column: 3; grid-row: 2 / span 3; position: sticky; top: 118px; }
+
+    .quote-flow-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .quote-flow-copy h2 {
+      margin: 0 0 6px;
+      color: var(--accent-strong);
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .quote-flow-copy p {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .quote-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .quote-step {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .quote-step.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .mode-switch {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      min-width: 220px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+    }
+
+    .mode-switch button {
+      min-height: 36px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .mode-switch button.is-active {
+      background: var(--input-bg);
+      color: var(--accent-strong);
+      box-shadow: 0 1px 4px rgba(63, 67, 51, 0.12);
+    }
+
+    body[data-quote-mode="beginner"] .advanced-only {
+      display: none !important;
+    }
+
+    .source-badge,
+    .analysis-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 23px;
+      padding: 3px 7px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+
+    .analysis-badge.low { border-color: #b8833e; background: var(--warning-soft); color: #754a1f; }
+    .analysis-badge.ai { border-color: #5f8468; background: var(--success-soft); color: #35573d; }
+    .analysis-badge.local { border-color: #66869a; background: #e1eaee; color: #35576a; }
+    .analysis-badge.chatgpt { border-color: #7a6b9a; background: #eae5f1; color: #57456f; }
+
+    .project-detail-grid,
+    .task-grid,
+    .material-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .check-tile {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      min-height: 42px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .check-tile input {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      margin: 0;
+    }
+
+    .quote-details,
+    .reference-advanced {
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    details > summary {
+      min-height: 40px;
+      color: var(--accent-strong);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .reference-status {
+      margin-top: 8px;
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .reference-status.error { color: var(--danger); }
+    .reference-status.ok { color: var(--ok); }
+
+    .reference-apply-panel {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid #b8bda7;
+      border-radius: 7px;
+      background: var(--accent-soft);
+    }
+
+    .reference-apply-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .reference-apply-item {
+      display: grid;
+      gap: 4px;
+      padding: 9px;
+      border: 1px solid rgba(102, 115, 74, 0.35);
+      border-radius: 6px;
+      background: rgba(255, 254, 250, 0.8);
+      font-size: 11px;
+    }
+
+    .reference-apply-actions,
+    .result-actions,
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .decision-card {
+      display: grid;
+      gap: 5px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--input-bg);
+    }
+
+    .decision-card.recommended {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .decision-card span { color: var(--muted); font-size: 11px; font-weight: 800; }
+    .decision-card strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+    .decision-card em { color: var(--muted); font-size: 10px; font-style: normal; line-height: 1.4; }
+
+    .breakdown-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 7px;
+      border-bottom: 1px dashed var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .breakdown-row strong { color: var(--text); }
+
+    .copy-preview {
+      max-height: 180px;
+      overflow: auto;
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f7f5ed;
+      color: var(--muted);
+      font: 11px/1.5 "Segoe UI", sans-serif;
+      white-space: pre-wrap;
+    }
+
+    .missing-info-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: var(--warn);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    dialog.josh-modal {
+      width: min(620px, calc(100vw - 28px));
+      max-height: calc(100vh - 28px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: 0 24px 70px rgba(30, 35, 27, 0.25);
+    }
+
+    dialog.josh-modal::backdrop { background: rgba(34, 39, 31, 0.48); }
+    .modal-header { padding: 16px; border-bottom: 1px solid var(--line); background: #f8f5eb; }
+    .modal-header h2 { margin: 0; font-size: 17px; }
+    .modal-body { display: grid; gap: 12px; padding: 16px; }
+    .modal-preview { padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-soft); font-size: 12px; line-height: 1.5; }
+    .modal-error { min-height: 20px; color: var(--danger); font-size: 12px; }
+
+    .mobile-bottom-nav { display: none; }
+
+    @media (max-width: 1180px) {
+      .layout[data-workspace] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .quote-flow-panel { grid-column: 1 / -1; }
+      .layout[data-workspace="quote"] #quickQuotePanel,
+      .layout[data-workspace="quote"] #longformPanel,
+      .layout[data-workspace="quote"] #settingsPanel,
+      .layout[data-workspace="quote"] #summaryPanel {
+        grid-column: 1 / -1;
+        grid-row: auto;
+        position: static;
+      }
+    }
+
+    @media (max-width: 820px) {
+      body { padding-bottom: 72px; }
+      .workspace-nav { display: none; }
+      .auth-strip { display: none; }
+      .layout[data-workspace] { display: flex; flex-direction: column; padding: 10px; }
+      .layout[data-workspace] > .panel { margin-bottom: 10px; }
+      .layout[data-workspace="quote"] #quoteFlowPanel { order: 0; }
+      .layout[data-workspace="quote"] #quickQuotePanel { order: 1; }
+      .layout[data-workspace="quote"] #longformPanel { order: 2; }
+      .layout[data-workspace="quote"] #settingsPanel { order: 3; }
+      .layout[data-workspace="quote"] #summaryPanel { order: 4; }
+      .quote-flow-body { grid-template-columns: 1fr; }
+      .quote-flow-copy h2 { font-size: 18px; }
+      .quote-steps { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+      .quote-step { flex: 0 0 auto; }
+      .mode-switch { width: 100%; }
+      .mode-switch button { min-height: 44px; }
+      .project-detail-grid,
+      .task-grid,
+      .material-grid,
+      .reference-apply-grid,
+      .decision-grid { grid-template-columns: 1fr; }
+      .reference-form,
+      .reference-file-form { grid-template-columns: 1fr; }
+      .reference-result { grid-template-columns: 1fr; }
+      .reference-thumbnail { width: 100%; max-height: 190px; object-fit: cover; }
+      .mobile-bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1px;
+        padding: 6px max(6px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line);
+        background: rgba(253, 251, 244, 0.98);
+      }
+      .mobile-bottom-nav button {
+        min-height: 48px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 900;
+      }
+      .mobile-bottom-nav button.is-active { background: var(--accent-soft); color: var(--accent-strong); }
+      .button, button, input, select { min-height: 44px; }
+      .calendar-cell { min-height: 76px; }
+    }
   </style>
 </head>
 <body>
@@ -1857,7 +2258,7 @@
     <header class="topbar" id="topbar">
       <div class="brand">
         <h1>조쉬</h1>
-        <span>구독비 · 편집시간 · 마감 보고 계산</span>
+        <span>영상편집 견적 · 작업시간 · 일정 비서</span>
       </div>
       <div class="top-actions" id="topActions">
         <button class="button" id="presetOutsourceButton" type="button">정기 외주 예시</button>
@@ -1880,7 +2281,7 @@
       </button>
     </header>
 
-    <section class="auth-strip" aria-label="계정 및 일정 동기화">
+    <section class="auth-strip" id="authStrip" aria-label="계정 및 일정 동기화">
       <form class="auth-form" id="signedOutAuth">
         <label class="sr-only" for="authEmail">이메일</label>
         <input id="authEmail" type="email" autocomplete="email" placeholder="이메일 주소" required>
@@ -1894,18 +2295,38 @@
       <p class="auth-status" id="authStatus" role="status">로그인하면 일정과 금액 정보가 PC·모바일에 자동 동기화됩니다.</p>
     </section>
 
-    <nav class="desktop-section-nav" id="desktopSectionNav" aria-label="주요 기능 바로가기">
-      <a class="is-active" href="#todayPanel">오늘</a>
-      <a href="#quickQuotePanel">빠른 견적</a>
-      <a href="#settingsPanel">견적 계산</a>
-      <a href="#servicesPanel">프로그램비</a>
-      <a href="#longformPanel">롱폼 단가</a>
-      <a href="#schedulePanel">일정</a>
-      <a href="#calendarPanel">캘린더</a>
-      <a href="#profitPanel">월 수익</a>
+    <nav class="workspace-nav" id="desktopSectionNav" aria-label="조쉬 작업 영역">
+      <button class="workspace-tab is-active" type="button" data-workspace-tab="quote">견적<small>새 견적 · 레퍼런스 · 결과</small></button>
+      <button class="workspace-tab" type="button" data-workspace-tab="work">작업<small>오늘 · 일정 · 캘린더</small></button>
+      <button class="workspace-tab" type="button" data-workspace-tab="manage">관리<small>프로그램비 · 월 수익 · 기본 단가</small></button>
     </nav>
 
-    <main class="layout">
+    <main class="layout" data-workspace="quote">
+      <section class="panel quote-flow-panel" id="quoteFlowPanel" aria-labelledby="quoteFlowTitle">
+        <div class="panel-body quote-flow-body">
+          <div class="quote-flow-copy">
+            <h2 id="quoteFlowTitle">새 영상 견적</h2>
+            <p>고객 문의와 레퍼런스를 바탕으로 실제 작업량을 확인하고, 내가 지켜야 할 금액과 고객에게 제안할 금액을 따로 계산합니다.</p>
+            <div class="quote-steps" aria-label="견적 진행 순서">
+              <span class="quote-step is-active">1 문의 입력</span>
+              <span class="quote-step">2 레퍼런스</span>
+              <span class="quote-step">3 분석 확인</span>
+              <span class="quote-step">4 조건 조정</span>
+              <span class="quote-step">5 견적</span>
+              <span class="quote-step">6 근거</span>
+              <span class="quote-step">7 고객용 결과</span>
+            </div>
+          </div>
+          <div class="mode-switch" role="group" aria-label="견적 입력 모드">
+            <button class="is-active" id="beginnerModeButton" type="button" aria-pressed="true">간단 입력</button>
+            <button id="expertModeButton" type="button" aria-pressed="false">상세 조정</button>
+          </div>
+          <details class="quote-details" style="grid-column: 1 / -1;">
+            <summary id="savedQuotesSummary">저장 견적 0개</summary>
+            <div class="schedule-list" id="savedQuoteList"></div>
+          </details>
+        </div>
+      </section>
       <section class="panel today-panel" id="todayPanel" aria-labelledby="todayPlanTitle">
         <div class="panel-header">
           <h2 id="todayPlanTitle">오늘 작업</h2>
@@ -1974,7 +2395,7 @@
           <h2 id="settingsTitle">계산 기준</h2>
         </div>
         <div class="panel-body">
-          <div class="field-grid">
+          <div class="field-grid advanced-only">
             <div class="field">
               <label for="exchangeRate">환율</label>
               <input id="exchangeRate" type="number" min="1" step="1" value="1500">
@@ -2008,6 +2429,7 @@
             <div class="field">
               <label for="projectPrice">실제 수령액</label>
               <input id="projectPrice" type="number" min="0" step="10000" value="0">
+              <small class="field-note">완료 프로젝트 비교용입니다. 새 견적에는 입력하지 않아도 됩니다.</small>
             </div>
             <div class="field">
               <label for="condition">컨디션</label>
@@ -2034,6 +2456,7 @@
                 <option value="1.2">빠듯함 · 120%</option>
                 <option value="1.5">48시간 이내 · 150%</option>
               </select>
+              <small class="field-note">완료 예상시간에만 반영되며 고객 견적 금액은 올리지 않습니다.</small>
             </div>
             <div class="field">
               <label for="quoteMode">최종 견적 기준</label>
@@ -2132,6 +2555,20 @@
           </button>
         </div>
         <div class="panel-body" id="summaryPanelBody">
+          <div class="decision-grid" aria-live="polite">
+            <div class="decision-card">
+              <span>관계 유지 견적</span>
+              <strong id="relationshipQuote">0원</strong>
+              <em>최소 작업비와 원가를 지키는 협의 하한</em>
+            </div>
+            <div class="decision-card recommended">
+              <span>정상 권장 견적</span>
+              <strong id="sustainableQuote">0원</strong>
+              <em>현재 조건을 지속 가능한 단가로 계산</em>
+            </div>
+          </div>
+          <p class="field-note" id="referenceComparisonNote">레퍼런스 분석 전입니다.</p>
+
           <div class="summary-grid">
             <div class="metric wide">
               <span>월 프로그램 원가 추정</span>
@@ -2159,6 +2596,22 @@
               <em id="quoteBasisNote">롱폼 분당 기준 · 난이도/납기 반영</em>
             </div>
           </div>
+
+          <div class="divider"></div>
+
+          <details open>
+            <summary>왜 이 금액인가요?</summary>
+            <div class="breakdown-list" id="quoteBreakdown"></div>
+          </details>
+
+          <div class="divider"></div>
+          <div class="result-actions">
+            <button class="button primary" id="copyCustomerQuoteButton" type="button">고객용 견적 복사</button>
+            <button class="button" id="copyInternalQuoteButton" type="button">내부 계산 복사</button>
+            <button class="button" id="saveQuoteButton" type="button">현재 견적 저장</button>
+          </div>
+          <div class="copy-preview" id="quoteCopyPreview">복사한 견적 문구가 여기에 표시됩니다.</div>
+          <ul class="missing-info-list" id="missingInfoList"></ul>
 
           <div class="divider"></div>
 
@@ -2229,6 +2682,63 @@
           <p class="longform-header-note">원본 촬영 길이가 아니라 납품하는 최종본 영상 길이를 기준으로 계산합니다.</p>
         </div>
         <div class="panel-body">
+          <section class="quote-project-details" aria-labelledby="projectDetailsTitle">
+            <h3 class="longform-section-title" id="projectDetailsTitle">고객 작업 조건</h3>
+            <div class="project-detail-grid">
+              <div class="field">
+                <label for="originalMinutes">원본 촬영 길이(분) <span class="source-badge" data-source-for="originalMinutes">직접 입력</span></label>
+                <input id="originalMinutes" type="number" min="0" step="1" value="40" inputmode="numeric">
+              </div>
+              <div class="field">
+                <label for="sourceEditState">원본 정리 상태 <span class="source-badge" data-source-for="sourceEditState">기본값</span></label>
+                <select id="sourceEditState">
+                  <option value="raw" selected>원본 그대로 · 셀렉 필요</option>
+                  <option value="partial">일부 정리 · 가편 있음</option>
+                  <option value="locked">컷 확정 · 종편만</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="quoteValidityDays">견적 유효기간</label>
+                <select id="quoteValidityDays">
+                  <option value="7" selected>7일</option>
+                  <option value="14">14일</option>
+                  <option value="30">30일</option>
+                </select>
+              </div>
+            </div>
+            <details class="quote-details advanced-only">
+              <summary>제공 자료와 세부 편집 항목</summary>
+              <h4 class="longform-section-title">고객 제공 자료</h4>
+              <div class="material-grid" id="materialGrid">
+                <label class="check-tile"><input type="checkbox" data-material="script">대본</label>
+                <label class="check-tile"><input type="checkbox" data-material="srt">SRT 자막</label>
+                <label class="check-tile"><input type="checkbox" data-material="assets">삽입 자료</label>
+                <label class="check-tile"><input type="checkbox" data-material="broll">B-roll</label>
+                <label class="check-tile"><input type="checkbox" data-material="music">음원</label>
+                <label class="check-tile"><input type="checkbox" data-material="brand">브랜드 가이드</label>
+                <label class="check-tile"><input type="checkbox" data-material="thumbnail">썸네일 자료</label>
+              </div>
+              <h4 class="longform-section-title">추가 작업</h4>
+              <div class="task-grid" id="taskGrid">
+                <label class="check-tile"><input type="checkbox" data-task="denseCaption">고밀도 전체 자막</label>
+                <label class="check-tile"><input type="checkbox" data-task="pointCaption">포인트 타이포</label>
+                <label class="check-tile"><input type="checkbox" data-task="motion">모션그래픽</label>
+                <label class="check-tile"><input type="checkbox" data-task="research">자료 조사</label>
+                <label class="check-tile"><input type="checkbox" data-task="stock">스톡·이미지 선별</label>
+                <label class="check-tile"><input type="checkbox" data-task="sync">멀티캠 싱크</label>
+                <label class="check-tile"><input type="checkbox" data-task="noise">노이즈 제거</label>
+                <label class="check-tile"><input type="checkbox" data-task="audioMix">오디오 믹싱</label>
+                <label class="check-tile"><input type="checkbox" data-task="color">정밀 색보정</label>
+                <label class="check-tile"><input type="checkbox" data-task="masking">마스킹·트래킹</label>
+                <label class="check-tile"><input type="checkbox" data-task="reframe">세로 리프레임</label>
+                <label class="check-tile"><input type="checkbox" data-task="thumbnail">썸네일 제작</label>
+                <label class="check-tile"><input type="checkbox" data-task="translation">번역 자막</label>
+                <label class="check-tile"><input type="checkbox" data-task="derivedShorts">파생 숏폼</label>
+              </div>
+            </details>
+            <p class="field-note" id="quoteCompletenessNote">최종본 길이·카메라·편집 범위·수정 횟수가 입력되어 있습니다.</p>
+          </section>
+
           <div class="longform-layout">
             <div class="longform-inputs">
               <div class="field">
@@ -2332,7 +2842,8 @@
           </div>
 
           <div class="reference-analyzer">
-            <h3 class="longform-section-title">레퍼런스 영상 분석</h3>
+            <h3 class="longform-section-title">레퍼런스 영상 분석 <span class="analysis-badge low" id="referenceAnalysisBadge">분석 전</span></h3>
+            <p class="longform-header-note">처음에는 링크나 영상 파일만 넣으세요. 분석 결과는 바로 덮어쓰지 않고 적용 전 확인합니다.</p>
             <div class="reference-form">
               <label class="sr-only" for="referenceFormatMode">레퍼런스 영상 유형</label>
               <select id="referenceFormatMode">
@@ -2342,8 +2853,9 @@
               </select>
               <label class="sr-only" for="referenceUrl">레퍼런스 영상 링크</label>
               <input id="referenceUrl" type="url" inputmode="url" placeholder="유튜브·쇼츠·릴스·틱톡 등 레퍼런스 링크">
-              <button class="button" id="analyzeReferenceButton" type="button">링크 기본 분석</button>
+              <button class="button" id="analyzeReferenceButton" type="button">빠른 추정</button>
             </div>
+            <p class="reference-status" id="referenceInputStatus" role="status"></p>
             <div class="reference-file-form">
               <label class="sr-only" for="referenceVideoFile">레퍼런스 영상 파일</label>
               <input id="referenceVideoFile" type="file" accept="video/*">
@@ -2353,11 +2865,14 @@
               <progress id="frameAnalysisProgressBar" max="100" value="0"></progress>
               <span id="frameAnalysisStatus">준비 중</span>
             </div>
-            <label class="reference-ai-option" for="useAiFrameAnalysis">
-              <input id="useAiFrameAnalysis" type="checkbox">
-              공개 YouTube 대표 장면 AI 분석 · OpenAI API 사용료 발생
-            </label>
-            <small class="field-note" id="referenceModeNote">체크하지 않으면 제목 기반 기본 분석 후 구독 중인 ChatGPT에 보낼 요청문을 만듭니다. 영상 파일은 외부 전송 없이 기기에서만 판독합니다.</small>
+            <details class="reference-advanced advanced-only">
+              <summary>분석 방법 선택</summary>
+              <label class="reference-ai-option" for="useAiFrameAnalysis">
+                <input id="useAiFrameAnalysis" type="checkbox">
+                공개 YouTube 대표 장면 AI 분석 · OpenAI API 사용료 발생
+              </label>
+              <small class="field-note" id="referenceModeNote">빠른 추정은 제목과 공개 정보만 확인합니다. 영상 파일은 외부 전송 없이 화면 복잡도만 판독합니다.</small>
+            </details>
             <video id="referenceVideo" muted playsinline preload="metadata" hidden></video>
             <canvas id="referenceFrameCanvas" hidden></canvas>
             <div class="reference-result" id="referenceResult" hidden>
@@ -2373,6 +2888,22 @@
                   <span>추가 단가<b id="referenceSurcharge">-</b></span>
                   <span>예상 권장가<b id="referenceQuote">-</b></span>
                 </div>
+                <div class="quick-quote-chips" id="referenceFactorList"></div>
+              </div>
+            </div>
+            <div class="reference-apply-panel" id="referenceApplyPanel" hidden>
+              <strong>분석 제안 적용 전 확인</strong>
+              <p class="field-note" id="referenceApplySummary">현재값과 추천값을 비교한 뒤 필요한 항목만 적용하세요.</p>
+              <div class="reference-apply-grid">
+                <label class="reference-apply-item"><span>영상 유형</span><b id="referenceModeChange">-</b><input id="applyReferenceMode" type="checkbox" checked></label>
+                <label class="reference-apply-item"><span>카메라 수</span><b id="referenceCameraChange">-</b><input id="applyReferenceCamera" type="checkbox"></label>
+                <label class="reference-apply-item"><span>난이도</span><b id="referenceDifficultyChange">-</b><input id="applyReferenceDifficulty" type="checkbox" checked></label>
+              </div>
+              <div class="material-grid" id="referenceTaskSuggestions"></div>
+              <div class="reference-apply-actions">
+                <button class="button primary" id="applyReferenceSuggestionsButton" type="button">선택 항목 적용</button>
+                <button class="button" id="applyAllReferenceSuggestionsButton" type="button">모두 선택</button>
+                <button class="button" id="dismissReferenceSuggestionsButton" type="button">제안 유지하지 않기</button>
               </div>
             </div>
             <div class="frame-analysis-detail" id="frameAnalysisDetail" hidden>
@@ -2489,6 +3020,7 @@
             <div class="field">
               <label for="scheduleDeadline">마감일</label>
               <input id="scheduleDeadline" type="date">
+              <label class="reference-ai-option" for="scheduleDeadlineUnknown"><input id="scheduleDeadlineUnknown" type="checkbox">마감 미정</label>
             </div>
             <div class="field">
               <label for="scheduleHours">남은 시간</label>
@@ -2518,6 +3050,8 @@
             <button class="button primary" id="addScheduleButton" type="button">일정 추가</button>
             <button class="button" id="copyScheduleButton" type="button">일정 복사</button>
           </div>
+
+          <p class="reference-status" id="scheduleFormStatus" role="status"></p>
 
           <div class="schedule-list" id="scheduleList"></div>
         </div>
@@ -2622,6 +3156,45 @@
     </main>
   </div>
 
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="모바일 주요 기능">
+    <button class="is-active" type="button" data-mobile-target="quick">빠른 견적</button>
+    <button type="button" data-mobile-target="reference">레퍼런스</button>
+    <button type="button" data-mobile-target="adjust">조건 조정</button>
+    <button type="button" data-mobile-target="result">견적 결과</button>
+  </nav>
+
+  <dialog class="josh-modal" id="backupImportDialog" aria-labelledby="backupImportTitle">
+    <div class="modal-header"><h2 id="backupImportTitle">백업 가져오기</h2></div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="backupImportText">백업 데이터 붙여넣기</label>
+        <textarea id="backupImportText" placeholder="백업 복사로 만든 JSON 데이터를 붙여넣으세요."></textarea>
+      </div>
+      <div class="modal-preview" id="backupImportPreview">데이터를 붙여넣으면 버전과 변경 항목을 미리 보여드립니다.</div>
+      <p class="modal-error" id="backupImportError" role="alert"></p>
+      <div class="modal-actions">
+        <button class="button primary" id="applyBackupImportButton" type="button" disabled>가져오기 적용</button>
+        <button class="button" id="resetThenImportButton" type="button" disabled>초기화 후 적용</button>
+        <button class="button" id="cancelBackupImportButton" type="button">취소</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="josh-modal" id="resetDialog" aria-labelledby="resetDialogTitle">
+    <div class="modal-header"><h2 id="resetDialogTitle">초기화 범위 선택</h2></div>
+    <div class="modal-body">
+      <p class="field-note">삭제할 범위를 선택하세요. 적용 전에는 아무 데이터도 지워지지 않습니다.</p>
+      <label class="check-tile"><input type="radio" name="resetScope" value="quote" checked>현재 견적 입력만 초기화</label>
+      <label class="check-tile"><input type="radio" name="resetScope" value="quote-reference">견적과 레퍼런스 초기화</label>
+      <label class="check-tile"><input type="radio" name="resetScope" value="quote-schedules">견적과 일정 초기화</label>
+      <label class="check-tile"><input type="radio" name="resetScope" value="all">모든 로컬 데이터 초기화</label>
+      <div class="modal-actions">
+        <button class="button primary" id="confirmResetButton" type="button">선택 범위 초기화</button>
+        <button class="button" id="cancelResetButton" type="button">취소</button>
+      </div>
+    </div>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const STORAGE_KEY = "josh-subscription-calculator-v2";
@@ -2631,7 +3204,11 @@
     const SUMMARY_STORAGE_KEY = "josh-summary-collapsed-v1";
     const TODAY_PLAN_STORAGE_KEY = "josh-today-plan-v1";
     const QUICK_QUOTE_STORAGE_KEY = "josh-quick-quote-v1";
-    const SETTINGS_VERSION = 8;
+    const QUOTE_META_STORAGE_KEY = "josh-quote-meta-v1";
+    const SAVED_QUOTES_STORAGE_KEY = "josh-saved-quotes-v1";
+    const WORKSPACE_STORAGE_KEY = "josh-workspace-v1";
+    const QUOTE_MODE_STORAGE_KEY = "josh-quote-input-mode-v1";
+    const SETTINGS_VERSION = 9;
     const PROFIT_SETTINGS_VERSION = 2;
     const FINANCE_STATE_PREFIX = "JOSH_MONTHLY_PLAN_V1:";
     const SUBSCRIPTION_STATE_PREFIX = "JOSH_SERVICE_V1:";
@@ -2788,8 +3365,44 @@
       "shortformHours",
       "shortformCameras",
       "referenceFormatMode",
-      "referenceUrl"
+      "referenceUrl",
+      "originalMinutes",
+      "sourceEditState",
+      "quoteValidityDays"
     ];
+
+    const quoteTaskPrices = {
+      denseCaption: { label: "고밀도 전체 자막", perMinute: 3000 },
+      pointCaption: { label: "포인트 타이포", perMinute: 3000 },
+      motion: { label: "모션그래픽", perMinute: 7000 },
+      research: { label: "자료 조사", fixed: 30000 },
+      stock: { label: "스톡·이미지 선별", perMinute: 4000 },
+      sync: { label: "멀티캠 싱크", fixed: 20000 },
+      noise: { label: "노이즈 제거", fixed: 30000 },
+      audioMix: { label: "오디오 믹싱", fixed: 30000 },
+      color: { label: "정밀 색보정", fixed: 30000 },
+      masking: { label: "마스킹·트래킹", perMinute: 7000 },
+      reframe: { label: "세로 리프레임", fixed: 30000 },
+      thumbnail: { label: "썸네일 제작", fixed: 30000 },
+      translation: { label: "번역 자막", perMinute: 5000 },
+      derivedShorts: { label: "파생 숏폼", fixed: 30000 }
+    };
+
+    const referenceFactorLabels = {
+      cutDensity: "컷 밀도",
+      subtitleDensity: "자막 밀도",
+      pointTypography: "포인트 타이포",
+      inserts: "자료 삽입",
+      broll: "B-roll",
+      motionGraphics: "모션그래픽",
+      maskingTracking: "마스킹·트래킹",
+      zoomReframe: "줌·리프레임",
+      soundEffects: "효과음",
+      musicEditing: "음악 편집",
+      color: "색보정",
+      research: "자료 조사",
+      multicam: "멀티캠"
+    };
 
     const cameraHourlyRates = {
       1: 30000,
@@ -2841,7 +3454,9 @@
 
     let services = structuredClone(servicesSeed);
     let referenceAnalysisState = null;
+    let pendingReferenceSuggestion = null;
     let selectedReferenceFile = null;
+    let quoteMetaState = { tasks: [], materials: [], sources: {} };
 
     const schedulesSeed = [];
 
@@ -2875,6 +3490,120 @@
 
     function formatKrw(value) {
       return formatter.format(Math.max(0, Math.round(value)));
+    }
+
+    function setWorkspace(workspace, { scroll = false, targetId = "" } = {}) {
+      const allowed = ["quote", "work", "manage"];
+      const next = allowed.includes(workspace) ? workspace : "quote";
+      const layout = document.querySelector(".layout");
+      layout.dataset.workspace = next;
+      const panelWorkspace = {
+        quoteFlowPanel: "quote",
+        quickQuotePanel: "quote",
+        longformPanel: "quote",
+        settingsPanel: "quote",
+        summaryPanel: "quote",
+        todayPanel: "work",
+        schedulePanel: "work",
+        calendarPanel: "work",
+        servicesPanel: "manage",
+        profitPanel: "manage"
+      };
+      Object.entries(panelWorkspace).forEach(([id, owner]) => {
+        const panel = document.getElementById(id);
+        if (panel) panel.hidden = owner !== next;
+      });
+      document.querySelectorAll("[data-workspace-tab]").forEach((button) => {
+        const active = button.dataset.workspaceTab === next;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-current", active ? "page" : "false");
+      });
+      const authStrip = document.getElementById("authStrip");
+      if (authStrip) authStrip.hidden = next !== "manage";
+      try { localStorage.setItem(WORKSPACE_STORAGE_KEY, next); } catch {}
+      if (scroll) {
+        const target = document.getElementById(targetId) || layout;
+        requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+      }
+    }
+
+    function loadWorkspace() {
+      let workspace = "quote";
+      try { workspace = localStorage.getItem(WORKSPACE_STORAGE_KEY) || "quote"; } catch {}
+      setWorkspace(workspace);
+    }
+
+    function setQuoteInputMode(mode) {
+      const next = mode === "expert" ? "expert" : "beginner";
+      document.body.dataset.quoteMode = next;
+      const beginner = document.getElementById("beginnerModeButton");
+      const expert = document.getElementById("expertModeButton");
+      beginner.classList.toggle("is-active", next === "beginner");
+      expert.classList.toggle("is-active", next === "expert");
+      beginner.setAttribute("aria-pressed", String(next === "beginner"));
+      expert.setAttribute("aria-pressed", String(next === "expert"));
+      try { localStorage.setItem(QUOTE_MODE_STORAGE_KEY, next); } catch {}
+    }
+
+    function loadQuoteInputMode() {
+      let mode = "beginner";
+      try { mode = localStorage.getItem(QUOTE_MODE_STORAGE_KEY) || "beginner"; } catch {}
+      setQuoteInputMode(mode);
+    }
+
+    function selectedQuoteTasks() {
+      return Array.from(document.querySelectorAll("[data-task]:checked"))
+        .map((input) => input.dataset.task)
+        .filter((key) => quoteTaskPrices[key]);
+    }
+
+    function selectedMaterials() {
+      return Array.from(document.querySelectorAll("[data-material]:checked"))
+        .map((input) => input.dataset.material);
+    }
+
+    function taskAddonTotal(minutes = Math.max(1, numberValue("longformFinalMinutes"))) {
+      return selectedQuoteTasks().reduce((sum, key) => {
+        const item = quoteTaskPrices[key];
+        return sum + (item.fixed || 0) + ((item.perMinute || 0) * minutes);
+      }, 0);
+    }
+
+    function saveQuoteMeta() {
+      quoteMetaState.tasks = selectedQuoteTasks();
+      quoteMetaState.materials = selectedMaterials();
+      try { localStorage.setItem(QUOTE_META_STORAGE_KEY, JSON.stringify(quoteMetaState)); } catch {}
+    }
+
+    function loadQuoteMeta() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(QUOTE_META_STORAGE_KEY) || "{}");
+        quoteMetaState = {
+          tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+          materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+          sources: parsed.sources && typeof parsed.sources === "object" ? parsed.sources : {}
+        };
+      } catch {
+        quoteMetaState = { tasks: [], materials: [], sources: {} };
+      }
+      document.querySelectorAll("[data-task]").forEach((input) => {
+        input.checked = quoteMetaState.tasks.includes(input.dataset.task);
+      });
+      document.querySelectorAll("[data-material]").forEach((input) => {
+        input.checked = quoteMetaState.materials.includes(input.dataset.material);
+      });
+      renderSourceBadges();
+    }
+
+    function markInputSource(id, source) {
+      quoteMetaState.sources[id] = source;
+      renderSourceBadges();
+    }
+
+    function renderSourceBadges() {
+      document.querySelectorAll("[data-source-for]").forEach((badge) => {
+        badge.textContent = quoteMetaState.sources[badge.dataset.sourceFor] || "직접 입력";
+      });
     }
 
     function setTopbarExpanded(expanded, persist = true) {
@@ -3155,18 +3884,96 @@
     }
 
     function applyReferenceEstimateToControls(analysis, contentType) {
-      const cameraCount = Math.min(3, Math.max(1, Math.round(Number(analysis?.estimatedCameraCount) || 0)));
+      const rawCameraCount = Math.round(Number(analysis?.estimatedCameraCount) || 0);
+      const cameraCount = rawCameraCount >= 1 && rawCameraCount <= 3 ? rawCameraCount : null;
       const cameraConfidence = Math.min(1, Math.max(0, Number(analysis?.cameraConfidence) || 0));
-      if (contentType === "shortform") {
-        document.getElementById("quoteMode").value = "shortform";
-        if (cameraConfidence >= 0.6) document.getElementById("shortformCameras").value = String(cameraCount);
-      } else if (contentType === "longform") {
-        document.getElementById("quoteMode").value = "longform";
-        if (cameraConfidence >= 0.6) {
-          document.getElementById("longformCameras").value = String(cameraCount);
-          applyCameraHourlyRate();
-        }
+      const currentMode = document.getElementById("quoteMode").value;
+      const currentCamera = contentType === "shortform"
+        ? Number(document.getElementById("shortformCameras").value)
+        : Number(document.getElementById("longformCameras").value);
+      pendingReferenceSuggestion = {
+        contentType,
+        quoteMode: contentType === "shortform" ? "shortform" : contentType === "longform" ? "longform" : currentMode,
+        cameraCount: cameraConfidence >= 0.6 ? cameraCount : null,
+        cameraConfidence,
+        difficultyValue: Number(analysis?.difficultyValue) || null,
+        workFactors: analysis?.workFactors || {},
+        currentMode,
+        currentCamera,
+        currentDifficulty: Number(document.getElementById("difficulty").value)
+      };
+      renderReferenceSuggestionPanel();
+    }
+
+    function renderReferenceSuggestionPanel() {
+      const panel = document.getElementById("referenceApplyPanel");
+      if (!pendingReferenceSuggestion) {
+        panel.hidden = true;
+        return;
       }
+      const suggestion = pendingReferenceSuggestion;
+      panel.hidden = false;
+      document.getElementById("referenceModeChange").textContent =
+        `${suggestion.currentMode === "shortform" ? "숏폼" : "롱폼"} → ${referenceContentTypeLabel(suggestion.contentType)}`;
+      document.getElementById("referenceCameraChange").textContent = suggestion.cameraCount
+        ? `${suggestion.currentCamera}캠 → ${suggestion.cameraCount}캠 · 신뢰 ${Math.round(suggestion.cameraConfidence * 100)}%`
+        : `${suggestion.currentCamera}캠 유지 · 추정 불충분`;
+      document.getElementById("referenceDifficultyChange").textContent = suggestion.difficultyValue
+        ? `${suggestion.currentDifficulty}배 → ${suggestion.difficultyValue}배`
+        : `${suggestion.currentDifficulty}배 유지`;
+      document.getElementById("applyReferenceCamera").checked = Boolean(suggestion.cameraCount);
+      document.getElementById("applyReferenceCamera").disabled = !suggestion.cameraCount;
+      const factorTaskMap = {
+        subtitleDensity: "denseCaption",
+        pointTypography: "pointCaption",
+        inserts: "stock",
+        motionGraphics: "motion",
+        maskingTracking: "masking",
+        zoomReframe: "reframe",
+        color: "color",
+        research: "research",
+        multicam: "sync"
+      };
+      const taskSuggestions = Object.entries(suggestion.workFactors)
+        .filter(([key, level]) => level === "high" && factorTaskMap[key])
+        .map(([key]) => factorTaskMap[key]);
+      document.getElementById("referenceTaskSuggestions").innerHTML = taskSuggestions.map((key) =>
+        `<label class="check-tile"><input type="checkbox" data-reference-task="${key}" checked>${quoteTaskPrices[key].label} 추가</label>`
+      ).join("");
+    }
+
+    function applyPendingReferenceSuggestions() {
+      if (!pendingReferenceSuggestion) return;
+      const suggestion = pendingReferenceSuggestion;
+      if (document.getElementById("applyReferenceMode").checked && suggestion.contentType !== "unknown") {
+        document.getElementById("quoteMode").value = suggestion.quoteMode;
+        markInputSource("quoteMode", "AI 제안 적용");
+      }
+      if (document.getElementById("applyReferenceCamera").checked && suggestion.cameraCount) {
+        const cameraControl = suggestion.contentType === "shortform" ? "shortformCameras" : "longformCameras";
+        document.getElementById(cameraControl).value = String(suggestion.cameraCount);
+        markInputSource(cameraControl, "AI 제안 적용");
+        if (cameraControl === "longformCameras") applyCameraHourlyRate();
+      }
+      if (document.getElementById("applyReferenceDifficulty").checked && suggestion.difficultyValue) {
+        document.getElementById("difficulty").value = String(suggestion.difficultyValue);
+        markInputSource("difficulty", "AI 제안 적용");
+      }
+      document.querySelectorAll("[data-reference-task]:checked").forEach((suggestedInput) => {
+        const target = document.querySelector(`[data-task="${suggestedInput.dataset.referenceTask}"]`);
+        if (target) target.checked = true;
+      });
+      if (referenceAnalysisState) referenceAnalysisState.applied = true;
+      pendingReferenceSuggestion = null;
+      renderReferenceSuggestionPanel();
+      calculate();
+      document.getElementById("copyState").textContent = "선택한 레퍼런스 제안을 견적에 적용했습니다.";
+    }
+
+    function dismissReferenceSuggestions() {
+      pendingReferenceSuggestion = null;
+      renderReferenceSuggestionPanel();
+      document.getElementById("copyState").textContent = "레퍼런스 분석은 참고로 남기고 현재 견적값은 유지했습니다.";
     }
 
     function normalizeReferenceUrl(value) {
@@ -3490,6 +4297,11 @@
       const editingPace = ["slow", "medium", "fast"].includes(String(value.editingPace || "").toLowerCase())
         ? String(value.editingPace).toLowerCase()
         : "unknown";
+      const rawFactors = value.workFactors && typeof value.workFactors === "object" ? value.workFactors : {};
+      const workFactors = Object.fromEntries(Object.keys(referenceFactorLabels).map((key) => {
+        const level = String(rawFactors[key] || "unknown").toLowerCase();
+        return [key, ["low", "medium", "high", "unknown"].includes(level) ? level : "unknown"];
+      }));
       return {
         ...level,
         summary: value.summary.trim(),
@@ -3501,7 +4313,8 @@
         estimatedCameraCount: cameraCount >= 1 && cameraCount <= 3 ? cameraCount : null,
         cameraConfidence: Math.min(1, Math.max(0, Number(value.cameraConfidence) || 0)),
         cameraReason: typeof value.cameraReason === "string" ? value.cameraReason.trim() : "",
-        editingPace
+        editingPace,
+        workFactors
       };
     }
 
@@ -3553,7 +4366,22 @@
         '  "estimatedCameraCount": 1부터 3 사이 정수 또는 null,',
         '  "cameraConfidence": 0부터 1 사이 숫자,',
         '  "cameraReason": "서로 다른 촬영 각도 근거를 한국어로 설명",',
-        '  "editingPace": "slow 또는 medium 또는 fast 또는 unknown"',
+        '  "editingPace": "slow 또는 medium 또는 fast 또는 unknown",',
+        '  "workFactors": {',
+        '    "cutDensity": "low 또는 medium 또는 high 또는 unknown",',
+        '    "subtitleDensity": "low 또는 medium 또는 high 또는 unknown",',
+        '    "pointTypography": "low 또는 medium 또는 high 또는 unknown",',
+        '    "inserts": "low 또는 medium 또는 high 또는 unknown",',
+        '    "broll": "low 또는 medium 또는 high 또는 unknown",',
+        '    "motionGraphics": "low 또는 medium 또는 high 또는 unknown",',
+        '    "maskingTracking": "low 또는 medium 또는 high 또는 unknown",',
+        '    "zoomReframe": "low 또는 medium 또는 high 또는 unknown",',
+        '    "soundEffects": "low 또는 medium 또는 high 또는 unknown",',
+        '    "musicEditing": "low 또는 medium 또는 high 또는 unknown",',
+        '    "color": "low 또는 medium 또는 high 또는 unknown",',
+        '    "research": "low 또는 medium 또는 high 또는 unknown",',
+        '    "multicam": "low 또는 medium 또는 high 또는 unknown"',
+        '  }',
         "}"
       ].join("\n");
     }
@@ -3806,6 +4634,8 @@
         referenceAnalysisState = {
           ...referenceAnalysisState,
           ...analysis,
+          baseline: null,
+          applied: false,
           contentType,
           analysisMode: "chatgpt-subscription",
           aiDetails: analysis,
@@ -3813,13 +4643,12 @@
           reason: `ChatGPT 레퍼런스 분석: ${analysis.summary} ${localReason}`,
           estimatedQuote: 0
         };
-        document.getElementById("difficulty").value = String(analysis.difficultyValue);
         calculate();
         renderReferenceAnalysis(referenceAnalysisState);
         saveState();
-        status.textContent = "구독 중인 ChatGPT 분석 결과를 견적에 반영했습니다.";
+        status.textContent = "ChatGPT 분석 결과를 확인했습니다. 적용할 항목을 선택해주세요.";
         document.getElementById("copyState").textContent =
-          "무료 ChatGPT 레퍼런스 분석 결과가 난이도와 권장 견적에 반영됐습니다.";
+          "ChatGPT 레퍼런스 분석 결과를 불러왔습니다. 현재 견적값은 아직 바뀌지 않았습니다.";
       } catch (error) {
         status.textContent = error.message || "ChatGPT 답변을 반영하지 못했습니다.";
       }
@@ -3933,16 +4762,69 @@
       }
     }
 
+    function referenceAnalysisPresentation(state) {
+      if (!state) return { label: "분석 전", className: "low" };
+      if (state.analysisMode === "chatgpt-subscription") return { label: "ChatGPT 수동 AI", className: "chatgpt" };
+      if (state.analysisMode === "ai") return { label: "대표 장면 AI", className: "ai" };
+      if (state.analysisMode === "local") return { label: "화면 복잡도 분석", className: "local" };
+      return { label: "제목 기반 추정 · 낮은 신뢰", className: "low" };
+    }
+
+    function createReferenceBaseline(state) {
+      if (!state || state.baseline) return;
+      const longform = getLongformQuoteValues();
+      const referenceQuote = adjustedLongformQuote(
+        longform,
+        Number(state.difficultyValue) || numberValue("difficulty"),
+        numberValue("rush"),
+        state,
+        numberValue("revisionRounds")
+      );
+      const shortformQuote = getShortformQuoteValues(
+        toolCostTotal() / Math.max(1, numberValue("monthlyHours")),
+        Number(state.difficultyValue) || numberValue("difficulty"),
+        numberValue("rush"),
+        numberValue("revisionRounds")
+      );
+      state.baseline = Object.freeze({
+        createdAt: new Date().toISOString(),
+        contentType: state.contentType,
+        cameraCount: state.estimatedCameraCount || null,
+        difficulty: Number(state.difficultyValue) || numberValue("difficulty"),
+        quote: state.contentType === "shortform" ? shortformQuote.recommended : referenceQuote.recommended
+      });
+      state.estimatedQuote = state.baseline.quote;
+    }
+
     function renderReferenceAnalysis(state) {
       const result = document.getElementById("referenceResult");
       const thumbnail = document.getElementById("referenceThumbnail");
+      const badge = document.getElementById("referenceAnalysisBadge");
+      const status = document.getElementById("referenceInputStatus");
       if (!state) {
         result.hidden = true;
         thumbnail.hidden = true;
         thumbnail.removeAttribute("src");
+        document.getElementById("referenceFactorList").innerHTML = "";
+        badge.textContent = "분석 전";
+        badge.className = "analysis-badge low";
+        if (!document.getElementById("referenceUrl").value.trim()) status.textContent = "";
+        pendingReferenceSuggestion = null;
+        renderReferenceSuggestionPanel();
         renderFrameAnalysisDetails(null);
         return;
       }
+
+      createReferenceBaseline(state);
+      const presentation = referenceAnalysisPresentation(state);
+      badge.textContent = presentation.label;
+      badge.className = `analysis-badge ${presentation.className}`;
+      status.className = "reference-status ok";
+      status.textContent = state.analysisMode === "local"
+        ? "영상 프레임의 화면 변화와 디테일만 확인했습니다. 실제 편집 난도와 캠 수는 직접 확인하세요."
+        : state.analysisMode === "metadata"
+          ? "제목과 공개 정보만 사용한 참고용 추정입니다."
+          : "분석 결과를 확인하고 아래 제안 중 필요한 항목만 적용하세요.";
 
       result.hidden = false;
       thumbnail.hidden = !state.thumbnail;
@@ -3964,7 +4846,13 @@
           : state.surchargePerMinute
             ? `+${formatKrw(state.surchargePerMinute)}/분`
             : "추가 없음";
-      document.getElementById("referenceQuote").textContent = formatKrw(state.estimatedQuote);
+      document.getElementById("referenceQuote").textContent = formatKrw(state.baseline?.quote || state.estimatedQuote);
+      const factorList = document.getElementById("referenceFactorList");
+      const factorLevelLabel = { low: "낮음", medium: "보통", high: "높음", unknown: "확인 필요" };
+      factorList.innerHTML = Object.entries(state.workFactors || {})
+        .filter(([, level]) => level !== "unknown")
+        .map(([key, level]) => `<span class="chip">${referenceFactorLabels[key]} ${factorLevelLabel[level]}</span>`)
+        .join("");
       renderFrameAnalysisDetails(state);
     }
 
@@ -4060,14 +4948,14 @@
               ? "medium"
               : "slow",
           estimatedQuote: 0,
+          applied: false,
           ...analysis
         };
-        document.getElementById("difficulty").value = String(analysis.difficultyValue);
         calculate();
         renderReferenceAnalysis(referenceAnalysisState);
         status.textContent = `${sampleCount}개 완료`;
         document.getElementById("copyState").textContent =
-          `${sourceLabel}: ${sampleCount}개 프레임을 기기 안에서 판독해 견적에 반영했습니다. 의미 분석은 ChatGPT 요청 버튼을 사용하세요.`;
+          `${sourceLabel}: ${sampleCount}개 프레임의 화면 복잡도를 확인했습니다. 현재 견적값은 바뀌지 않았습니다.`;
         saveState();
       } catch (error) {
         referenceAnalysisState = null;
@@ -4110,11 +4998,11 @@
       const useAi = document.getElementById("useAiFrameAnalysis").checked;
       const button = document.getElementById("analyzeReferenceButton");
       const note = document.getElementById("referenceModeNote");
-      button.textContent = useAi ? "AI로 링크 영상 분석" : "링크 기본 분석";
+      button.textContent = useAi ? "대표 장면 AI 분석" : "빠른 추정";
       button.classList.toggle("primary", useAi);
       note.textContent = useAi
         ? "공개 YouTube 대표 장면 4장을 OpenAI API가 시각 분석합니다. 전체 영상·오디오는 분석하지 않으며 별도 API 사용료가 발생합니다."
-        : "제목 기반 기본 분석 후 구독 중인 ChatGPT에 보낼 요청문을 만듭니다. 영상 파일은 외부 전송 없이 기기에서만 판독합니다.";
+        : "제목과 공개 정보만 사용하는 참고용 추정입니다. 영상 파일은 외부 전송 없이 화면 복잡도만 판독합니다.";
     }
 
     async function analyzeReference() {
@@ -4122,13 +5010,30 @@
       referenceAnalysisTimer = null;
       const input = document.getElementById("referenceUrl");
       const button = document.getElementById("analyzeReferenceButton");
+      const inputStatus = document.getElementById("referenceInputStatus");
+      const rawValue = input.value.trim();
       const url = normalizeReferenceUrl(input.value);
+      if (!rawValue) {
+        referenceAnalysisState = null;
+        renderReferenceAnalysis(null);
+        inputStatus.className = "reference-status error";
+        inputStatus.textContent = "레퍼런스 링크를 먼저 입력하세요.";
+        document.getElementById("copyState").textContent = inputStatus.textContent;
+        input.focus();
+        return;
+      }
       if (!url) {
         referenceAnalysisState = null;
         renderReferenceAnalysis(null);
-        document.getElementById("copyState").textContent = "http 또는 https로 시작하는 레퍼런스 링크를 입력해주세요.";
+        inputStatus.className = "reference-status error";
+        inputStatus.textContent = "https://로 시작하는 영상 링크를 입력하세요.";
+        document.getElementById("copyState").textContent = inputStatus.textContent;
+        input.focus();
         return;
       }
+
+      inputStatus.className = "reference-status";
+      inputStatus.textContent = "링크를 확인하고 있습니다.";
 
       const useAiLinkAnalysis = document.getElementById("useAiFrameAnalysis").checked;
       button.disabled = true;
@@ -4148,6 +5053,10 @@
           return;
         }
         const platform = referencePlatform(url);
+        const supportedPlatforms = ["YouTube", "Instagram", "TikTok", "Vimeo"];
+        if (!supportedPlatforms.includes(platform) && !isDirectVideoUrl(url)) {
+          inputStatus.textContent = "이 사이트는 제목 기반 빠른 추정만 지원합니다. 실제 영상 확인은 파일 또는 ChatGPT 수동 분석을 사용하세요.";
+        }
         let aiFailure = "";
         if (useAiLinkAnalysis && extractYouTubeVideoId(url)) {
           try {
@@ -4172,13 +5081,13 @@
                 (analysis.cameraReason ? `카메라 추정 근거: ${analysis.cameraReason} ` : "") +
                 "전체 영상과 오디오는 확인하지 않은 추정치입니다.",
               estimatedQuote: 0,
+              applied: false,
               ...analysis
             };
-            document.getElementById("difficulty").value = String(analysis.difficultyValue);
             calculate();
             renderReferenceAnalysis(referenceAnalysisState);
             document.getElementById("copyState").textContent =
-              `AI가 공개 대표 장면 ${aiResult.frames.length || 4}개를 판독해 견적에 반영했습니다. 전체 영상 확인 전에는 가견적으로 사용하세요.`;
+              `AI가 공개 대표 장면 ${aiResult.frames.length || 4}개를 판독했습니다. 적용할 항목을 직접 확인해주세요.`;
             return;
           } catch (error) {
             aiFailure = error.message || "AI 링크 분석을 사용할 수 없습니다.";
@@ -4206,15 +5115,15 @@
           cameraReason: "제목과 링크만으로는 카메라 수를 추정할 수 없습니다.",
           editingPace: "unknown",
           estimatedQuote: 0,
+          applied: false,
           ...analysis
         };
-        document.getElementById("difficulty").value = String(analysis.difficultyValue);
         calculate();
         renderReferenceAnalysis(referenceAnalysisState);
         document.getElementById("copyState").textContent =
           aiFailure
             ? `AI 시각 분석 실패: ${aiFailure} 제목 기반 기본 분석만 반영했습니다. 무료 ChatGPT 요청 버튼을 사용할 수 있습니다.`
-            : "레퍼런스 기본 분석을 견적에 반영했습니다. 아래에서 ChatGPT 요청문을 준비할 수 있습니다.";
+            : "제목 기반 빠른 추정을 만들었습니다. 현재 견적값은 바뀌지 않았습니다.";
       } catch (error) {
         if (!referenceAnalysisState) renderReferenceAnalysis(null);
         document.getElementById("copyState").textContent =
@@ -4375,6 +5284,7 @@
       const warnings = [];
       const setValue = (id, value, label) => {
         document.getElementById(id).value = String(value);
+        markInputSource(id, "고객 문의");
         if (label) applied.push(label);
       };
 
@@ -4515,7 +5425,7 @@
       }
 
       const originalMinutes = firstCapturedNumber(text, [/(?:원본|촬영본)(?:\s*(?:길이|분량))?[^\d\n]{0,6}(\d+(?:\.\d+)?)\s*분/i]);
-      if (originalMinutes > 0) applied.push(`원본 ${originalMinutes}분 · 참고용`);
+      if (originalMinutes > 0) setValue("originalMinutes", originalMinutes, `원본 ${originalMinutes}분`);
 
       setValue("quoteMode", isShortform ? "shortform" : "longform");
       calculate();
@@ -4626,7 +5536,10 @@
       controls.forEach((id) => {
         controlState[id] = document.getElementById(id).value;
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SETTINGS_VERSION, controls: controlState, services }));
+      const storedReference = referenceAnalysisState
+        ? { ...referenceAnalysisState, frames: [], thumbnail: referenceAnalysisState.sourceType === "frame-file" ? "" : referenceAnalysisState.thumbnail }
+        : null;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SETTINGS_VERSION, controls: controlState, services, reference: storedReference }));
       queueCloudFinanceSave();
     }
 
@@ -4679,6 +5592,9 @@
             }
             return merged;
           });
+        }
+        if (parsed.reference && typeof parsed.reference === "object") {
+          referenceAnalysisState = { ...parsed.reference, frames: [] };
         }
       } catch {
         services = structuredClone(servicesSeed);
@@ -5488,9 +6404,10 @@
     function readScheduleForm() {
       return {
         id: `schedule-${Date.now()}`,
-        name: document.getElementById("scheduleName").value.trim() || "이름 없는 작업",
+        name: document.getElementById("scheduleName").value.trim(),
         type: document.getElementById("scheduleType").value,
         deadline: document.getElementById("scheduleDeadline").value,
+        deadlineUnknown: document.getElementById("scheduleDeadlineUnknown").checked,
         remainingHours: Math.max(0, numberValue("scheduleHours")),
         conditionDelay: Math.max(0, numberValue("scheduleCondition")),
         dailyHours: Math.max(0.5, numberValue("scheduleDailyHours")),
@@ -5501,6 +6418,21 @@
 
     async function addSchedule() {
       const item = readScheduleForm();
+      const status = document.getElementById("scheduleFormStatus");
+      if (!item.name) {
+        status.className = "reference-status error";
+        status.textContent = "작업명을 입력하세요.";
+        document.getElementById("scheduleName").focus();
+        return;
+      }
+      if (!item.deadline && !item.deadlineUnknown) {
+        status.className = "reference-status error";
+        status.textContent = "마감일을 선택하거나 ‘마감 미정’을 체크하세요.";
+        document.getElementById("scheduleDeadline").focus();
+        return;
+      }
+      status.className = "reference-status ok";
+      status.textContent = "일정을 저장했습니다.";
       const existingIndex = schedules.findIndex((schedule) =>
         schedule.name === item.name && schedule.deadline === item.deadline
       );
@@ -5514,6 +6446,7 @@
       saveSchedules();
       renderSchedules();
       renderCalendar();
+      renderSavedQuotes();
       document.getElementById("copyState").textContent = `${item.name} 일정을 업데이트했습니다.`;
       if (authSession) {
         try {
@@ -5598,11 +6531,13 @@
 
     async function exportBackup() {
       const payload = {
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
         controls: currentControlState(),
         services,
-        schedules
+        schedules,
+        quoteMeta: quoteMetaState,
+        savedQuotes: readSavedQuotes()
       };
       const text = JSON.stringify(payload);
       try {
@@ -5613,42 +6548,81 @@
       }
     }
 
-    function importBackup() {
-      const text = window.prompt("백업 복사로 만든 데이터를 붙여넣어주세요.");
-      if (!text) return;
-      try {
-        const parsed = JSON.parse(text);
-        if (!parsed || typeof parsed !== "object") throw new Error("Invalid backup");
-
-        if (parsed.controls) {
-          controls.forEach((id) => {
-            if (parsed.controls[id] !== undefined) {
-              document.getElementById(id).value = id === "condition"
-                ? normalizeConditionDelay(parsed.controls[id])
-                : parsed.controls[id];
-            }
-          });
-        }
-        if (Array.isArray(parsed.services)) {
-          services = servicesSeed.map((seed) => {
-            const existing = parsed.services.find((item) => item.id === seed.id);
-            return existing ? { ...seed, ...existing, plans: seed.plans } : seed;
-          });
-        }
-        if (Array.isArray(parsed.schedules)) {
-          schedules = parsed.schedules;
-          saveSchedules();
-        }
-
-        saveState();
-        renderServices();
-        renderSchedules();
-        renderCalendar();
-        calculate();
-        document.getElementById("copyState").textContent = "백업 데이터를 가져왔습니다.";
-      } catch {
-        document.getElementById("copyState").textContent = "백업 데이터를 읽지 못했습니다. 복사한 내용이 잘렸는지 확인해주세요.";
+    function parseBackupPayload(text) {
+      let parsed;
+      try { parsed = JSON.parse(String(text || "").trim()); }
+      catch { throw new Error("JSON 형식을 읽지 못했습니다. 복사한 내용이 잘렸는지 확인하세요."); }
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("조쉬 백업 데이터 형식이 아닙니다.");
       }
+      if (!parsed.controls && !Array.isArray(parsed.services) && !Array.isArray(parsed.schedules)) {
+        throw new Error("적용할 견적·프로그램·일정 데이터가 없습니다.");
+      }
+      return parsed;
+    }
+
+    function backupPreviewText(parsed) {
+      const changes = [];
+      if (parsed.controls) changes.push(`견적 입력 ${Object.keys(parsed.controls).length}개`);
+      if (Array.isArray(parsed.services)) changes.push(`프로그램 ${parsed.services.length}개`);
+      if (Array.isArray(parsed.schedules)) changes.push(`일정 ${parsed.schedules.length}개`);
+      if (Array.isArray(parsed.savedQuotes)) changes.push(`저장 견적 ${parsed.savedQuotes.length}개`);
+      return `백업 버전 ${parsed.version || "이전 형식"} · ${changes.join(" · ")} · 내보낸 시각 ${parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString("ko-KR") : "정보 없음"}`;
+    }
+
+    function importBackup() {
+      const dialog = document.getElementById("backupImportDialog");
+      document.getElementById("backupImportText").value = "";
+      document.getElementById("backupImportPreview").textContent = "데이터를 붙여넣으면 버전과 변경 항목을 미리 보여드립니다.";
+      document.getElementById("backupImportError").textContent = "";
+      document.getElementById("applyBackupImportButton").disabled = true;
+      document.getElementById("resetThenImportButton").disabled = true;
+      dialog.showModal();
+      document.getElementById("backupImportText").focus();
+    }
+
+    function applyBackupPayload(parsed, resetFirst = false) {
+      if (resetFirst) {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(SCHEDULE_STORAGE_KEY);
+        services = structuredClone(servicesSeed);
+        schedules = [];
+      }
+      if (parsed.controls) {
+        controls.forEach((id) => {
+          if (parsed.controls[id] !== undefined) {
+            document.getElementById(id).value = id === "condition"
+              ? normalizeConditionDelay(parsed.controls[id])
+              : parsed.controls[id];
+          }
+        });
+      }
+      if (Array.isArray(parsed.services)) {
+        services = servicesSeed.map((seed) => {
+          const existing = parsed.services.find((item) => item.id === seed.id);
+          return existing ? { ...seed, ...existing, plans: seed.plans } : seed;
+        });
+      }
+      if (Array.isArray(parsed.schedules)) {
+        schedules = parsed.schedules;
+        saveSchedules();
+      }
+      if (parsed.quoteMeta && typeof parsed.quoteMeta === "object") {
+        quoteMetaState = parsed.quoteMeta;
+        localStorage.setItem(QUOTE_META_STORAGE_KEY, JSON.stringify(quoteMetaState));
+        loadQuoteMeta();
+      }
+      if (Array.isArray(parsed.savedQuotes)) {
+        localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, JSON.stringify(parsed.savedQuotes.slice(0, 20)));
+        renderSavedQuotes();
+      }
+      saveState();
+      renderServices();
+      renderSchedules();
+      renderCalendar();
+      calculate();
+      document.getElementById("backupImportDialog").close();
+      document.getElementById("copyState").textContent = "백업 미리보기를 확인하고 데이터를 가져왔습니다.";
     }
 
 
@@ -5899,6 +6873,199 @@
       });
     }
 
+    function quoteMissingInformation() {
+      const missing = [];
+      if (!numberValue("longformFinalMinutes") && document.getElementById("quoteMode").value !== "shortform") missing.push("최종본 길이");
+      if (!numberValue("originalMinutes")) missing.push("원본 촬영 길이");
+      if (!document.getElementById("deadline").value) missing.push("납기일");
+      if (!document.getElementById("referenceUrl").value.trim() && !selectedReferenceFile) missing.push("레퍼런스 또는 스타일 설명");
+      return missing;
+    }
+
+    function updateQuoteDecisionPanel(data) {
+      const relationship = Math.max(data.minimumQuote, roundToTenThousand(data.recommendedQuote * 0.9));
+      document.getElementById("relationshipQuote").textContent = formatKrw(relationship);
+      document.getElementById("sustainableQuote").textContent = formatKrw(data.recommendedQuote);
+
+      const baseline = referenceAnalysisState?.baseline?.quote || 0;
+      const comparison = document.getElementById("referenceComparisonNote");
+      if (baseline) {
+        const delta = data.recommendedQuote - baseline;
+        comparison.textContent = `레퍼런스 기준 ${formatKrw(baseline)} → 현재 조정 ${formatKrw(data.recommendedQuote)} (${delta >= 0 ? "+" : "-"}${formatKrw(Math.abs(delta))})`;
+      } else {
+        comparison.textContent = "레퍼런스 분석 전입니다. 현재 입력 조건만으로 계산했습니다.";
+      }
+
+      const revisionAddon = data.revisionRounds > 1
+        ? roundToThousand(data.recommendedQuote * ((data.revisionRounds - 1) * 0.25) / Math.max(1, 1 + ((data.revisionRounds - 1) * 0.25)))
+        : 0;
+      const rushAddon = data.rush > 1 ? roundToThousand(data.recommendedQuote * (data.rush - 1) / data.rush) : 0;
+      const rows = [
+        ["기본 작업", data.quoteBasisLabel === "예상 작업시간" ? data.laborCost : data.currentLongform.recommendedQuote],
+        [`카메라 ${data.currentLongform.cameraCount}대`, data.currentLongform.recommendedQuote - (data.currentLongform.minutes * longformRates[1].recommended)],
+        ["프로그램 사용료 배분", data.toolAllocation],
+        ["선택한 세부 작업", data.taskAddons],
+        [`수정 ${data.revisionRounds}회`, revisionAddon],
+        ["급행 가산", rushAddon],
+        ["천원 단위 반올림", 0]
+      ];
+      document.getElementById("quoteBreakdown").innerHTML = rows.map(([label, value]) => `
+        <div class="breakdown-row"><span>${label}</span><strong>${value ? formatKrw(Math.max(0, value)) : "포함/없음"}</strong></div>
+      `).join("") + `<div class="breakdown-row"><span>정상 권장 견적</span><strong>${formatKrw(data.recommendedQuote)}</strong></div>`;
+
+      const missing = quoteMissingInformation();
+      const missingList = document.getElementById("missingInfoList");
+      const actualOffer = Math.max(0, numberValue("projectPrice"));
+      const discountWarning = actualOffer && actualOffer < relationship
+        ? `<li>단가 경고: 입력한 실제·제안 금액 ${formatKrw(actualOffer)}은 관계 유지 견적보다 ${formatKrw(relationship - actualOffer)} 낮습니다.</li>`
+        : "";
+      missingList.innerHTML = (missing.length
+        ? `<li>고객에게 추가 확인: ${missing.join(", ")}</li><li>질문 예시: ${missing.join("과 ")}을 알려주시면 확정 견적을 안내드릴 수 있습니다.</li>`
+        : "") + discountWarning;
+      document.getElementById("quoteCompletenessNote").textContent = missing.length
+        ? `견적 정확도를 높이려면 ${missing.join(", ")} 확인이 필요합니다.`
+        : "핵심 견적 정보가 모두 입력되어 있습니다.";
+    }
+
+    function currentQuoteResult() {
+      return {
+        relationship: document.getElementById("relationshipQuote").textContent,
+        recommended: document.getElementById("sustainableQuote").textContent,
+        basis: document.getElementById("quoteBasis").textContent,
+        deadline: document.getElementById("deadline").value || "협의",
+        revisions: Math.max(1, Math.round(numberValue("revisionRounds"))),
+        validity: numberValue("quoteValidityDays") || 7,
+        mode: document.getElementById("quoteMode").value
+      };
+    }
+
+    function buildCustomerQuoteText() {
+      const result = currentQuoteResult();
+      const typeLine = result.mode === "shortform"
+        ? `최종본 ${numberValue("shortformFinalSeconds")}초 · ${numberValue("shortformCount")}편`
+        : `최종본 ${numberValue("longformFinalMinutes")}분 · ${numberValue("longformCameras")}캠`;
+      return [
+        "안녕하세요. 전달해주신 조건 기준으로 견적 안내드립니다.",
+        "",
+        `작업 조건: ${typeLine}`,
+        `제안 견적: ${result.recommended}`,
+        `포함 범위: 컷편집, 기본 자막, BGM·효과음, 기본 색보정, 수정 ${result.revisions}회`,
+        "제외/별도 협의: 원본 추가, 구성 변경, 고급 모션그래픽, 번역, 추가 결과물",
+        `추가 수정: 포함 횟수 이후 회당 기존 견적의 25%`,
+        `납기: ${result.deadline}`,
+        `견적 유효기간: 전달일로부터 ${result.validity}일`,
+        "",
+        "원본과 최종 작업 범위 확인 후 확정 견적으로 안내드리겠습니다."
+      ].join("\n");
+    }
+
+    function buildInternalQuoteText() {
+      const tasks = selectedQuoteTasks().map((key) => quoteTaskPrices[key].label).join(", ") || "없음";
+      return [
+        "조쉬 내부 견적 메모",
+        `관계 유지 견적: ${document.getElementById("relationshipQuote").textContent}`,
+        `정상 권장 견적: ${document.getElementById("sustainableQuote").textContent}`,
+        `시간 기준: ${document.getElementById("hourlyRecommendedQuote").textContent}`,
+        `분당 기준: ${document.getElementById("minuteRecommendedQuote").textContent}`,
+        `예상 작업: ${numberValue("baseHours")}시간 / 컨디션 포함 일정 ${document.getElementById("adjustedHoursNote").textContent}`,
+        `선택 세부 작업: ${tasks}`,
+        referenceAnalysisState?.baseline ? `레퍼런스 기준 스냅샷: ${formatKrw(referenceAnalysisState.baseline.quote)}` : "레퍼런스 기준 없음"
+      ].join("\n");
+    }
+
+    async function copyQuoteText(kind) {
+      const text = kind === "customer" ? buildCustomerQuoteText() : buildInternalQuoteText();
+      const preview = document.getElementById("quoteCopyPreview");
+      preview.textContent = text;
+      const copied = await copyTextWithFallback(text, null);
+      document.getElementById("copyState").textContent = copied
+        ? `${kind === "customer" ? "고객용" : "내부용"} 견적을 복사했습니다.`
+        : "자동 복사가 막혀 아래 미리보기에 문구를 표시했습니다.";
+    }
+
+    function saveCurrentQuote() {
+      let saved = [];
+      try { saved = JSON.parse(localStorage.getItem(SAVED_QUOTES_STORAGE_KEY) || "[]"); } catch {}
+      const item = {
+        id: `quote-${Date.now()}`,
+        savedAt: new Date().toISOString(),
+        customer: buildCustomerQuoteText(),
+        internal: buildInternalQuoteText(),
+        controls: currentControlState()
+      };
+      saved.unshift(item);
+      localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, JSON.stringify(saved.slice(0, 20)));
+      renderSavedQuotes();
+      document.getElementById("copyState").textContent = `현재 견적을 저장했습니다. 저장 견적 ${Math.min(saved.length, 20)}개`;
+    }
+
+    function readSavedQuotes() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(SAVED_QUOTES_STORAGE_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function renderSavedQuotes() {
+      const saved = readSavedQuotes();
+      document.getElementById("savedQuotesSummary").textContent = `저장 견적 ${saved.length}개`;
+      const list = document.getElementById("savedQuoteList");
+      list.replaceChildren();
+      if (!saved.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "저장한 견적이 없습니다.";
+        list.appendChild(empty);
+        return;
+      }
+      saved.forEach((item) => {
+        const article = document.createElement("article");
+        article.className = "schedule-card";
+        const heading = document.createElement("strong");
+        heading.textContent = new Date(item.savedAt).toLocaleString("ko-KR");
+        const preview = document.createElement("p");
+        preview.textContent = String(item.customer || "").split("\n").find((line) => line.startsWith("제안 견적")) || "저장 견적";
+        const actions = document.createElement("div");
+        actions.className = "result-actions";
+        const apply = document.createElement("button");
+        apply.className = "button";
+        apply.type = "button";
+        apply.textContent = "불러오기";
+        apply.addEventListener("click", () => {
+          controls.forEach((id) => {
+            if (item.controls?.[id] !== undefined) document.getElementById(id).value = item.controls[id];
+          });
+          calculate();
+          document.getElementById("copyState").textContent = "저장 견적을 현재 계산기에 불러왔습니다.";
+        });
+        const remove = document.createElement("button");
+        remove.className = "button";
+        remove.type = "button";
+        remove.textContent = "삭제";
+        remove.addEventListener("click", () => {
+          localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, JSON.stringify(saved.filter((savedItem) => savedItem.id !== item.id)));
+          renderSavedQuotes();
+        });
+        actions.append(apply, remove);
+        article.append(heading, preview, actions);
+        list.appendChild(article);
+      });
+    }
+
+    function renderCurrentQuoteChips() {
+      const input = document.getElementById("quickQuoteText");
+      if (!input?.value.trim()) return;
+      const mode = document.getElementById("quoteMode").value;
+      const chips = document.getElementById("quickQuoteChips");
+      const labels = mode === "shortform"
+        ? [`숏폼 ${numberValue("shortformFinalSeconds")}초`, `${numberValue("shortformCount")}편`, `${numberValue("shortformCameras")}캠`, `수정 ${numberValue("revisionRounds")}회`]
+        : [`최종본 ${numberValue("longformFinalMinutes")}분`, `${numberValue("longformCameras")}캠`, longformScopeSettings[document.getElementById("longformScope").value].label, `수정 ${numberValue("revisionRounds")}회`];
+      chips.innerHTML = labels.map((label) => `<span class="chip">${label}</span>`).join("");
+      document.getElementById("quickQuoteResultTitle").textContent = `예상 권장가 ${document.getElementById("recommendedQuote").textContent}`;
+    }
+
     function calculate() {
       updateServiceCosts();
       calculateLongformQuote();
@@ -5933,19 +7100,21 @@
       const costPerProject = total / monthlyProjects;
       const costPerHour = total / monthlyHours;
       const adjustedHours = baseHours + conditionDelay;
-      const laborCost = adjustedHours * hourlyRate * difficulty * rush;
-      const toolAllocation = adjustedHours * costPerHour;
+      const laborCost = baseHours * hourlyRate * difficulty * rush;
+      const toolAllocation = baseHours * costPerHour;
       const hourlyRecommendedQuote = roundToThousand(laborCost + toolAllocation);
-      const hourlyMinimumQuote = roundToThousand((adjustedHours * hourlyRate) + toolAllocation);
+      const hourlyMinimumQuote = roundToThousand((baseHours * hourlyRate) + toolAllocation);
       const currentLongform = getLongformQuoteValues();
+      const appliedReferenceState = referenceAnalysisState?.applied ? referenceAnalysisState : null;
       const minuteQuote = adjustedLongformQuote(
         currentLongform,
         difficulty,
         rush,
-        referenceAnalysisState,
+        appliedReferenceState,
         revisionRounds
       );
-      const minuteRecommendedQuote = minuteQuote.recommended;
+      const taskAddons = quoteMode === "shortform" ? 0 : taskAddonTotal(currentLongform.minutes);
+      const minuteRecommendedQuote = roundToThousand(minuteQuote.recommended + taskAddons);
       const shortformQuote = calculateShortformQuote(costPerHour, difficulty, rush, revisionRounds);
       let recommendedQuote = minuteRecommendedQuote;
       let minimumQuote = minuteQuote.minimum;
@@ -5971,12 +7140,7 @@
       const actualHourly = adjustedHours > 0 && projectPrice > 0 ? projectPrice / adjustedHours : 0;
       const quoteGap = projectPrice > 0 ? projectPrice - recommendedQuote : 0;
 
-      if (referenceAnalysisState) {
-        referenceAnalysisState.estimatedQuote = referenceAnalysisState.contentType === "shortform"
-          ? shortformQuote.recommended
-          : minuteRecommendedQuote;
-        renderReferenceAnalysis(referenceAnalysisState);
-      }
+      if (referenceAnalysisState) renderReferenceAnalysis(referenceAnalysisState);
 
       document.getElementById("monthlyTotal").textContent = formatKrw(total);
       document.getElementById("selectedCount").textContent = `선택 ${enabledCount}개 · 실지출 ${formatKrw(cashCost)} / 견적용 ${formatKrw(allocatedCost)}`;
@@ -6013,6 +7177,24 @@
         ? `${quoteGap >= 0 ? "+" : "-"}${formatKrw(Math.abs(quoteGap))}`
         : "-";
 
+      updateQuoteDecisionPanel({
+        recommendedQuote,
+        minimumQuote,
+        quoteBasisLabel,
+        baseHours,
+        adjustedHours,
+        hourlyRate,
+        laborCost,
+        toolAllocation,
+        taskAddons,
+        difficulty,
+        rush,
+        revisionRounds,
+        currentLongform
+      });
+      renderCurrentQuoteChips();
+      saveQuoteMeta();
+
       const startDate = parseDateInput(document.getElementById("startDate").value);
       const deadline = parseDateInput(document.getElementById("deadline").value);
       const daysNeeded = Math.ceil(adjustedHours / dailyHours);
@@ -6034,6 +7216,9 @@
               availableDays >= daysNeeded ? "일정 가능" : `${daysNeeded - availableDays}일 부족`
             }`
           : "시작일과 마감일을 고르면 선택한 작업일 기준으로 기간을 계산합니다.";
+      if (deadline && deadline < new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) {
+        document.getElementById("workdayRangeSummary").textContent += " · 저장된 과거 작업 날짜입니다.";
+      }
 
       status.className = "status";
       if (!deadline || !finishDate) {
@@ -6194,10 +7379,12 @@
       }
     }
 
-    function resetAll() {
+    function performFullReset() {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(PROFIT_STORAGE_KEY);
       localStorage.removeItem(QUICK_QUOTE_STORAGE_KEY);
+      localStorage.removeItem(QUOTE_META_STORAGE_KEY);
+      localStorage.removeItem(SAVED_QUOTES_STORAGE_KEY);
       services = structuredClone(servicesSeed);
       document.getElementById("exchangeRate").value = "1500";
       document.getElementById("feeRate").value = "10";
@@ -6225,6 +7412,11 @@
       document.getElementById("shortformCameras").value = "1";
       document.getElementById("referenceFormatMode").value = "auto";
       document.getElementById("referenceUrl").value = "";
+      document.getElementById("originalMinutes").value = "40";
+      document.getElementById("sourceEditState").value = "raw";
+      document.getElementById("quoteValidityDays").value = "7";
+      document.querySelectorAll("[data-task], [data-material]").forEach((input) => { input.checked = false; });
+      quoteMetaState = { tasks: [], materials: [], sources: {} };
       document.getElementById("quickQuoteText").value = "";
       document.getElementById("quickQuoteChips").innerHTML = "";
       document.getElementById("quickQuoteResultTitle").textContent = "입력 대기 중";
@@ -6248,6 +7440,48 @@
       renderServices();
       calculate();
       document.getElementById("copyState").textContent = "초기값으로 되돌렸습니다.";
+    }
+
+    function resetAll() {
+      document.getElementById("resetDialog").showModal();
+    }
+
+    function performScopedReset(scope) {
+      const keepServices = structuredClone(services);
+      const keepSchedules = structuredClone(schedules);
+      const keepProfit = localStorage.getItem(PROFIT_STORAGE_KEY);
+      const keepSavedQuotes = localStorage.getItem(SAVED_QUOTES_STORAGE_KEY);
+      const keepReference = scope === "quote" ? referenceAnalysisState : null;
+      performFullReset();
+
+      if (scope !== "all") {
+        services = keepServices;
+        if (keepProfit) localStorage.setItem(PROFIT_STORAGE_KEY, keepProfit);
+        if (keepSavedQuotes) localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, keepSavedQuotes);
+        loadProfitState();
+      }
+      if (!["quote-schedules", "all"].includes(scope)) {
+        schedules = keepSchedules;
+        saveSchedules();
+      } else {
+        schedules = [];
+        localStorage.removeItem(SCHEDULE_STORAGE_KEY);
+      }
+      if (scope === "quote" && keepReference) {
+        referenceAnalysisState = keepReference;
+        document.getElementById("referenceUrl").value = keepReference.url || "";
+        renderReferenceAnalysis(referenceAnalysisState);
+      }
+      renderServices();
+      renderSavedQuotes();
+      renderSchedules();
+      renderCalendar();
+      calculateProfit();
+      calculate();
+      document.getElementById("resetDialog").close();
+      document.getElementById("copyState").textContent = scope === "all"
+        ? "모든 로컬 데이터를 초기화했습니다."
+        : "선택한 범위만 초기화했습니다.";
     }
 
     function scrollToCalculationResults(targetId = "summaryPanel") {
@@ -6321,9 +7555,12 @@
 
     function init() {
       loadTopbarPreference();
+      if (window.matchMedia("(max-width: 820px)").matches) setTopbarExpanded(false, false);
       loadSummaryPreference();
-      setupDesktopSectionNav();
+      loadWorkspace();
+      loadQuoteInputMode();
       loadState();
+      loadQuoteMeta();
       loadQuickQuoteText();
       loadSchedules();
       loadProfitState();
@@ -6332,11 +7569,34 @@
       renderServices();
       renderSchedules();
       renderCalendar();
+      const referenceAnalyzer = document.querySelector(".reference-analyzer");
+      const longformBody = document.querySelector("#longformPanel > .panel-body");
+      const projectDetails = document.querySelector(".quote-project-details");
+      if (referenceAnalyzer && longformBody && projectDetails) {
+        longformBody.insertBefore(referenceAnalyzer, projectDetails.nextSibling);
+      }
       controls.forEach((id) => {
         const control = document.getElementById(id);
-        control.addEventListener("input", calculate);
-        control.addEventListener("change", calculate);
+        control.addEventListener("input", () => {
+          markInputSource(id, "직접 입력 · 잠금");
+          calculate();
+        });
+        control.addEventListener("change", () => {
+          markInputSource(id, "직접 입력 · 잠금");
+          calculate();
+        });
         if (id !== "referenceUrl") control.addEventListener("keydown", handleControlKeydown);
+      });
+      document.querySelectorAll("[data-workspace-tab]").forEach((button) => {
+        button.addEventListener("click", () => setWorkspace(button.dataset.workspaceTab, { scroll: true }));
+      });
+      document.getElementById("beginnerModeButton").addEventListener("click", () => setQuoteInputMode("beginner"));
+      document.getElementById("expertModeButton").addEventListener("click", () => setQuoteInputMode("expert"));
+      document.querySelectorAll("[data-task], [data-material]").forEach((input) => {
+        input.addEventListener("change", () => {
+          markInputSource(input.dataset.task || input.dataset.material, "직접 입력");
+          calculate();
+        });
       });
       document.getElementById("longformCameras").addEventListener("change", () => {
         applyCameraHourlyRate();
@@ -6389,15 +7649,35 @@
           referenceAnalysisState = null;
           renderReferenceAnalysis(null);
         }
+        document.getElementById("referenceInputStatus").textContent = "";
       });
       document.getElementById("useAiFrameAnalysis").addEventListener(
         "change",
         updateReferenceAnalysisMode
       );
       document.getElementById("referenceVideoFile").addEventListener("change", (event) => {
-        selectedReferenceFile = event.currentTarget.files?.[0] || null;
+        const file = event.currentTarget.files?.[0] || null;
+        const status = document.getElementById("referenceInputStatus");
+        const supported = file && (file.type.startsWith("video/") || /\.(mp4|mov|m4v|webm|avi)$/i.test(file.name));
+        if (file && (!supported || file.size > 500 * 1024 * 1024)) {
+          selectedReferenceFile = null;
+          event.currentTarget.value = "";
+          referenceAnalysisState = null;
+          renderReferenceAnalysis(null);
+          status.className = "reference-status error";
+          status.textContent = !supported
+            ? "MP4, MOV, M4V, WebM 영상 파일만 사용할 수 있습니다."
+            : "파일이 500MB를 넘습니다. 더 짧은 구간이나 압축한 파일로 다시 시도하세요.";
+          document.getElementById("analyzeFramesButton").disabled = true;
+          return;
+        }
+        selectedReferenceFile = file;
         document.getElementById("analyzeFramesButton").disabled = !selectedReferenceFile;
         if (selectedReferenceFile) {
+          referenceAnalysisState = null;
+          renderReferenceAnalysis(null);
+          status.className = "reference-status";
+          status.textContent = `${selectedReferenceFile.name} · 기기 안에서 화면 복잡도를 분석합니다.`;
           analyzeSelectedReferenceFile();
         } else if (referenceAnalysisState?.sourceType === "frame-file") {
           referenceAnalysisState = null;
@@ -6418,6 +7698,14 @@
         "click",
         applyChatgptAnalysisResult
       );
+      document.getElementById("applyReferenceSuggestionsButton").addEventListener("click", applyPendingReferenceSuggestions);
+      document.getElementById("applyAllReferenceSuggestionsButton").addEventListener("click", () => {
+        document.getElementById("applyReferenceMode").checked = true;
+        document.getElementById("applyReferenceDifficulty").checked = true;
+        if (!document.getElementById("applyReferenceCamera").disabled) document.getElementById("applyReferenceCamera").checked = true;
+        applyPendingReferenceSuggestions();
+      });
+      document.getElementById("dismissReferenceSuggestionsButton").addEventListener("click", dismissReferenceSuggestions);
       document.getElementById("referenceThumbnail").addEventListener("error", (event) => {
         event.currentTarget.hidden = true;
       });
@@ -6467,11 +7755,64 @@
         });
       });
       document.getElementById("copyTodayPlanButton").addEventListener("click", copyTodayPlan);
+      document.getElementById("scheduleDeadlineUnknown").addEventListener("change", (event) => {
+        const deadline = document.getElementById("scheduleDeadline");
+        deadline.disabled = event.currentTarget.checked;
+        if (event.currentTarget.checked) deadline.value = "";
+      });
       document.getElementById("applyButton").addEventListener("click", applyCurrentInputs);
       document.getElementById("exportButton").addEventListener("click", exportBackup);
       document.getElementById("importButton").addEventListener("click", importBackup);
       document.getElementById("copyButton").addEventListener("click", copySummary);
       document.getElementById("resetButton").addEventListener("click", resetAll);
+      document.getElementById("copyCustomerQuoteButton").addEventListener("click", () => copyQuoteText("customer"));
+      document.getElementById("copyInternalQuoteButton").addEventListener("click", () => copyQuoteText("internal"));
+      document.getElementById("saveQuoteButton").addEventListener("click", saveCurrentQuote);
+      document.getElementById("backupImportText").addEventListener("input", (event) => {
+        const error = document.getElementById("backupImportError");
+        const apply = document.getElementById("applyBackupImportButton");
+        const reset = document.getElementById("resetThenImportButton");
+        try {
+          const parsed = parseBackupPayload(event.currentTarget.value);
+          event.currentTarget._parsedBackup = parsed;
+          document.getElementById("backupImportPreview").textContent = backupPreviewText(parsed);
+          error.textContent = "";
+          apply.disabled = false;
+          reset.disabled = false;
+        } catch (parseError) {
+          event.currentTarget._parsedBackup = null;
+          error.textContent = event.currentTarget.value.trim() ? parseError.message : "";
+          apply.disabled = true;
+          reset.disabled = true;
+        }
+      });
+      document.getElementById("applyBackupImportButton").addEventListener("click", () => {
+        const parsed = document.getElementById("backupImportText")._parsedBackup;
+        if (parsed) applyBackupPayload(parsed, false);
+      });
+      document.getElementById("resetThenImportButton").addEventListener("click", () => {
+        const parsed = document.getElementById("backupImportText")._parsedBackup;
+        if (parsed) applyBackupPayload(parsed, true);
+      });
+      document.getElementById("cancelBackupImportButton").addEventListener("click", () => document.getElementById("backupImportDialog").close());
+      document.getElementById("confirmResetButton").addEventListener("click", () => {
+        const scope = document.querySelector('input[name="resetScope"]:checked')?.value || "quote";
+        performScopedReset(scope);
+      });
+      document.getElementById("cancelResetButton").addEventListener("click", () => document.getElementById("resetDialog").close());
+      document.querySelectorAll("[data-mobile-target]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-mobile-target]").forEach((item) => item.classList.toggle("is-active", item === button));
+          const targetMap = { quick: "quickQuotePanel", reference: "referenceUrl", adjust: "settingsPanel", result: "summaryPanel" };
+          setWorkspace("quote");
+          const target = document.getElementById(targetMap[button.dataset.mobileTarget]);
+          target?.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (button.dataset.mobileTarget === "reference") target?.focus();
+        });
+      });
+      window.addEventListener("resize", () => {
+        if (window.matchMedia("(max-width: 820px)").matches) setTopbarExpanded(false, false);
+      }, { passive: true });
       document.getElementById("presetOutsourceButton").addEventListener("click", applyOutsourcePreset);
       document.getElementById("presetThreeCamFullButton").addEventListener("click", () => {
         applyThreeCamQuotePreset("full", 400000);

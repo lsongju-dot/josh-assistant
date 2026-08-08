@@ -1,7 +1,7 @@
 {
   "name": "조쉬 - 스케줄 및 금전 비서",
   "short_name": "조쉬",
-  "description": "영상 편집 일정, 마감 위험도, 구독비, 견적가를 관리하는 개인 비서",
+  "description": "레퍼런스와 작업 조건을 분석해 영상편집 견적, 원가, 일정까지 계산하는 개인 비서",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
