@@ -91,7 +91,32 @@ let browserInstance;
                       estimatedCameraCount: 2,
                       cameraConfidence: 0.82,
                       cameraReason: "정면과 측면 구도가 반복됩니다.",
-                      editingPace: "fast"
+                      editingPace: "fast",
+                      needsFrameEvidence: false,
+                      visualEvidence: {
+                        camera: ["정면과 측면 구도가 반복됩니다."],
+                        broll: ["제품 보조 컷이 보입니다."],
+                        graphics: ["자료 화면이 삽입됩니다."],
+                        subtitles: ["큰 자막이 계속 보입니다."],
+                        motion: ["간단한 줌 리프레임이 보입니다."],
+                        pacing: ["빠른 컷 전환이 보입니다."],
+                        missing: []
+                      },
+                      workFactors: {
+                        cutDensity: "high",
+                        subtitleDensity: "high",
+                        pointTypography: "medium",
+                        inserts: "medium",
+                        broll: "medium",
+                        motionGraphics: "low",
+                        maskingTracking: "unknown",
+                        zoomReframe: "medium",
+                        soundEffects: "unknown",
+                        musicEditing: "unknown",
+                        color: "medium",
+                        research: "low",
+                        multicam: "medium"
+                      }
                     },
                     frames: [0, 1, 2, 3].map((index) => ({
                       image: "https://i.ytimg.com/vi/K36Et8h552w/" + index + ".jpg",
@@ -233,6 +258,8 @@ let browserInstance;
   await page.waitForFunction(() => !document.getElementById("referenceResult").hidden);
   const generatedPrompt = await page.inputValue("#chatgptPromptText");
   check(generatedPrompt.includes(referenceUrl), "ChatGPT prompt generation", generatedPrompt.slice(0, 240));
+  check(generatedPrompt.includes("B-roll") && generatedPrompt.includes('"visualEvidence"'), "ChatGPT prompt asks for detailed visual evidence");
+  check(generatedPrompt.includes("needsFrameEvidence") && generatedPrompt.includes("confidence는 0.25 이하"), "ChatGPT prompt handles inaccessible videos");
   const popupPromise = page.waitForEvent("popup");
   await page.click("#prepareChatgptAnalysisButton");
   const popup = await popupPromise;
@@ -251,21 +278,87 @@ let browserInstance;
   check((await page.textContent("#referenceReason")).includes("AI 대표 장면 판독"), "AI analysis rendered");
   check((await page.textContent("#referenceContentType")).includes("숏폼"), "AI content type rendered");
   check((await page.textContent("#referenceCameraCount")).includes("2캠"), "AI camera estimate rendered");
+  check((await page.textContent("#referenceEvidenceList")).includes("제품 보조 컷"), "AI visual evidence rendered");
   check(await page.inputValue("#shortformCameras") !== "2", "AI camera estimate does not silently apply");
   check(await page.isVisible("#referenceApplyPanel"), "AI suggestions require confirmation");
   await page.click("#applyReferenceSuggestionsButton");
   check(await page.inputValue("#shortformCameras") === "2", "confirmed AI camera estimate applied");
 
   await page.fill("#chatgptAnalysisResult", JSON.stringify({
+    difficulty: "medium",
+    summary: "영상 재생이 불가능해 프레임 증거가 필요합니다.",
+    editingSignals: ["영상 재생 불가"],
+    confidence: 0.12,
+    contentType: "unknown",
+    estimatedCameraCount: null,
+    cameraConfidence: 0.03,
+    cameraReason: "프레임을 확인할 수 없습니다.",
+    editingPace: "unknown",
+    needsFrameEvidence: true,
+    visualEvidence: {
+      camera: [],
+      broll: [],
+      graphics: [],
+      subtitles: [],
+      motion: [],
+      pacing: [],
+      missing: ["대표 프레임 시트가 필요합니다."]
+    },
+    workFactors: {
+      cutDensity: "unknown",
+      subtitleDensity: "unknown",
+      pointTypography: "unknown",
+      inserts: "unknown",
+      broll: "unknown",
+      motionGraphics: "unknown",
+      maskingTracking: "unknown",
+      zoomReframe: "unknown",
+      soundEffects: "unknown",
+      musicEditing: "unknown",
+      color: "unknown",
+      research: "unknown",
+      multicam: "unknown"
+    }
+  }));
+  await page.click("#applyChatgptAnalysisButton");
+  check(!(await page.isVisible("#referenceApplyPanel")), "low-confidence ChatGPT result is not offered for quote application");
+  check((await page.textContent("#referenceInputStatus")).includes("증거가 부족"), "low-confidence ChatGPT result asks for frame evidence");
+
+  await page.fill("#chatgptAnalysisResult", JSON.stringify({
     difficulty: "high",
     summary: "고급 모션그래픽이 확인됩니다.",
-    editingSignals: ["모션그래픽"],
+    editingSignals: ["모션그래픽", "B-roll", "포인트 자막"],
     confidence: 0.9,
     contentType: "shortform",
     estimatedCameraCount: 3,
     cameraConfidence: 0.9,
     cameraReason: "세 방향 촬영 구도가 보입니다.",
-    editingPace: "fast"
+    editingPace: "fast",
+    needsFrameEvidence: false,
+    visualEvidence: {
+      camera: ["세 방향 촬영 구도가 보입니다."],
+      broll: ["제품과 현장 보조 컷이 삽입됩니다."],
+      graphics: ["정보 카드와 자료 화면이 보입니다."],
+      subtitles: ["포인트 자막과 강조 타이포가 많습니다."],
+      motion: ["모션그래픽 전환이 보입니다."],
+      pacing: ["짧은 컷 리듬입니다."],
+      missing: []
+    },
+    workFactors: {
+      cutDensity: "high",
+      subtitleDensity: "high",
+      pointTypography: "high",
+      inserts: "high",
+      broll: "medium",
+      motionGraphics: "high",
+      maskingTracking: "medium",
+      zoomReframe: "medium",
+      soundEffects: "unknown",
+      musicEditing: "unknown",
+      color: "medium",
+      research: "medium",
+      multicam: "high"
+    }
   }));
   await page.click("#applyChatgptAnalysisButton");
   check(await page.inputValue("#difficulty") !== "1.8", "ChatGPT difficulty does not silently apply");

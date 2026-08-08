@@ -92,16 +92,19 @@ Deno.serve(async (request) => {
   const prompt = [
     "당신은 한국 영상 편집 외주 견적을 산정하는 시니어 포스트프로덕션 디렉터다.",
     "입력 이미지는 공개 YouTube 링크의 서로 다른 대표 장면이다. 영상 전체나 오디오가 아니므로 실제로 보이는 시각 요소만 판단한다.",
-    "판단 요소: 모션그래픽, 합성, 마스킹, 화면 분할, 자막·타이포그래피 밀도, 스톡 자료 사용량,",
-    "색보정 난도, 전환 빈도, 제품 광고 연출, AI/VFX 흔적, 반복 제작 부담.",
+    "목표는 견적에 바로 쓸 수 있는 작업량 판단표다. 아래 요소를 이미지 근거로 분리해서 판단한다.",
+    "카메라 수: 같은 인물/장면이 서로 다른 실제 촬영 각도나 구도로 반복 등장할 때만 2캠/3캠으로 본다. 크롭, 줌, 컷어웨이, 자료 화면은 별도 카메라로 세지 않는다.",
+    "B-roll: 메인 인터뷰/토크 외의 현장 스케치, 제품 컷, 보조 장면, 설명용 영상이 있는지 본다.",
+    "자료 삽입: 사진, 기사, 캡처, 도표, 화면 녹화, 스톡 이미지/영상, 브랜드 자료가 있는지 본다.",
+    "그래픽/모션: 도형, 인포그래픽, 키네틱 타이포, 추적 자막, 마스킹, 합성, 화면 분할, 애니메이션을 본다.",
+    "자막/타이포: 전체 말자막, 포인트 자막, 박스/강조/이모지/폰트 디자인 밀도를 본다.",
+    "컷 리듬: 장면 변화, 점프컷, 줌/리프레임, 전환 효과가 많은지 본다.",
     "세로형 숏폼인지 가로형 롱폼인지 contentType으로 분류한다.",
-    "서로 다른 구도와 촬영 각도가 실제로 보일 때만 원본 카메라 수를 1~3캠으로 추정한다.",
-    "컷 수, 화면 자료, 크롭 변화는 별도 카메라로 세지 않는다. 근거가 부족하면 estimatedCameraCount는 null로 둔다.",
+    "대표 장면만으로 확정할 수 없는 요소가 많으면 confidence를 낮추고 needsFrameEvidence를 true로 둔다.",
     "보이지 않는 오디오 상태, 원본 촬영 길이, 정확한 컷 빈도는 추측하지 않는다.",
     "difficulty는 basic, medium, high 중 하나다.",
     `영상 제목: ${String(body.title || "레퍼런스 영상").slice(0, 200)}`,
-    "대표 장면만으로 확정할 수 없는 요소가 많으면 confidence를 낮춘다.",
-    "summary와 editingSignals는 한국어로 작성한다.",
+    "summary, editingSignals, visualEvidence는 한국어로 작성한다.",
     "workFactors는 컷 밀도, 자막, 자료 삽입, B-roll, 모션, 마스킹, 리프레임, 효과음, 음악, 색보정, 조사, 멀티캠의 화면상 근거를 low/medium/high/unknown으로 나눠 작성한다.",
   ].join("\n");
 
@@ -176,6 +179,51 @@ Deno.serve(async (request) => {
                 type: "string",
                 enum: ["slow", "medium", "fast", "unknown"],
               },
+              needsFrameEvidence: {
+                type: "boolean",
+              },
+              visualEvidence: {
+                type: "object",
+                properties: {
+                  camera: {
+                    type: "array",
+                    items: { type: "string" },
+                    maxItems: 4,
+                  },
+                  broll: {
+                    type: "array",
+                    items: { type: "string" },
+                    maxItems: 4,
+                  },
+                  graphics: {
+                    type: "array",
+                    items: { type: "string" },
+                    maxItems: 4,
+                  },
+                  subtitles: {
+                    type: "array",
+                    items: { type: "string" },
+                    maxItems: 4,
+                  },
+                  motion: {
+                    type: "array",
+                    items: { type: "string" },
+                    maxItems: 4,
+                  },
+                  pacing: {
+                    type: "array",
+                    items: { type: "string" },
+                    maxItems: 4,
+                  },
+                  missing: {
+                    type: "array",
+                    items: { type: "string" },
+                    maxItems: 5,
+                  },
+                },
+                required: ["camera", "broll", "graphics", "subtitles", "motion", "pacing", "missing"],
+                additionalProperties: false,
+              },
               workFactors: {
                 type: "object",
                 properties: {
@@ -211,6 +259,8 @@ Deno.serve(async (request) => {
               "cameraConfidence",
               "cameraReason",
               "editingPace",
+              "needsFrameEvidence",
+              "visualEvidence",
               "workFactors",
             ],
             additionalProperties: false,

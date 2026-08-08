@@ -1407,6 +1407,38 @@
       font-size: 14px;
     }
 
+    .reference-evidence-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .reference-evidence-item {
+      border: 1px solid rgba(96, 111, 103, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.55);
+      padding: 9px 10px;
+    }
+
+    .reference-evidence-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .reference-evidence-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .reference-evidence-item.warning {
+      border-color: rgba(154, 99, 46, 0.28);
+      background: #fff7eb;
+    }
+
     .frame-analysis-detail {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2889,6 +2921,7 @@
                   <span>예상 권장가<b id="referenceQuote">-</b></span>
                 </div>
                 <div class="quick-quote-chips" id="referenceFactorList"></div>
+                <div class="reference-evidence-list" id="referenceEvidenceList"></div>
               </div>
             </div>
             <div class="reference-apply-panel" id="referenceApplyPanel" hidden>
@@ -3404,6 +3437,16 @@
       multicam: "멀티캠"
     };
 
+    const referenceEvidenceLabels = {
+      camera: "카메라와 구도",
+      broll: "B-roll과 삽입 영상",
+      graphics: "그래픽과 자료 화면",
+      subtitles: "자막과 타이포",
+      motion: "모션과 트래킹",
+      pacing: "컷 리듬",
+      missing: "추가 확인 필요"
+    };
+
     const cameraHourlyRates = {
       1: 30000,
       2: 40000,
@@ -3887,10 +3930,17 @@
       const rawCameraCount = Math.round(Number(analysis?.estimatedCameraCount) || 0);
       const cameraCount = rawCameraCount >= 1 && rawCameraCount <= 3 ? rawCameraCount : null;
       const cameraConfidence = Math.min(1, Math.max(0, Number(analysis?.cameraConfidence) || 0));
+      const confidence = Math.min(1, Math.max(0, Number(analysis?.confidence) || 0));
+      const isUsable = !analysis?.needsFrameEvidence && confidence >= 0.45;
       const currentMode = document.getElementById("quoteMode").value;
       const currentCamera = contentType === "shortform"
         ? Number(document.getElementById("shortformCameras").value)
         : Number(document.getElementById("longformCameras").value);
+      if (!isUsable) {
+        pendingReferenceSuggestion = null;
+        renderReferenceSuggestionPanel();
+        return;
+      }
       pendingReferenceSuggestion = {
         contentType,
         quoteMode: contentType === "shortform" ? "shortform" : contentType === "longform" ? "longform" : currentMode,
@@ -4278,6 +4328,26 @@
       });
     }
 
+    function normalizeEvidenceArray(value, maxItems = 4) {
+      if (!Array.isArray(value)) return [];
+      return value
+        .filter((item) => typeof item === "string" && item.trim())
+        .map((item) => item.trim())
+        .slice(0, maxItems);
+    }
+
+    function normalizeVisualEvidence(value) {
+      const source = value && typeof value === "object" ? value : {};
+      return Object.fromEntries(Object.keys(referenceEvidenceLabels).map((key) => [
+        key,
+        normalizeEvidenceArray(source[key])
+      ]));
+    }
+
+    function normalizeBoolean(value) {
+      return value === true || String(value).toLowerCase() === "true";
+    }
+
     function normalizeAiFrameAnalysis(value) {
       if (!value || typeof value !== "object") return null;
       const difficultyMap = {
@@ -4314,7 +4384,9 @@
         cameraConfidence: Math.min(1, Math.max(0, Number(value.cameraConfidence) || 0)),
         cameraReason: typeof value.cameraReason === "string" ? value.cameraReason.trim() : "",
         editingPace,
-        workFactors
+        workFactors,
+        visualEvidence: normalizeVisualEvidence(value.visualEvidence),
+        needsFrameEvidence: normalizeBoolean(value.needsFrameEvidence)
       };
     }
 
@@ -4327,21 +4399,27 @@
       const metrics = state.metrics || {};
       return [
         hasFrames
-          ? "아래에 함께 올린 이미지는 영상 레퍼런스에서 시간순으로 추출한 대표 프레임입니다."
-          : "아래 레퍼런스 링크를 열어 영상의 화면 구성과 편집 스타일을 확인해주세요.",
+          ? "아래에 함께 올린 이미지는 영상 레퍼런스에서 시간순으로 추출한 대표 프레임 시트입니다."
+          : "아래 레퍼런스 링크를 직접 열고 재생/스크럽해서 화면 구성과 편집 스타일을 확인해주세요.",
         "당신은 한국 영상 편집 외주 견적을 산정하는 시니어 포스트프로덕션 디렉터입니다.",
+        "목표는 단순 감상이 아니라 견적에 바로 쓸 수 있는 작업량 판단표를 만드는 것입니다.",
         hasFrames
-          ? "프레임을 직접 비교해 화면에 실제로 보이는 편집 난도를 판단해주세요."
-          : "링크에서 실제로 확인되는 내용만 근거로 편집 난도를 판단해주세요.",
+          ? "첨부 프레임을 우선 근거로 삼고, 화면에 실제로 보이는 요소만 판단해주세요."
+          : "링크를 볼 수 있다면 시작부, 중반부, 후반부를 최소 6장면 이상 훑어서 판단해주세요.",
         "",
-        "판단 요소:",
-        "- 모션그래픽, 합성, 마스킹, 화면 분할",
-        "- 자막·타이포그래피 밀도와 디자인 난도",
-        "- 스톡 자료 및 그래픽 자료 사용량",
-        "- 색보정 난도, 전환 빈도, 광고 연출, AI/VFX 흔적",
-        "- 세로형 숏폼인지 가로형 롱폼인지",
-        "- 서로 다른 촬영 각도와 구도를 비교한 원본 카메라 수 추정",
-        "- 반복 제작 부담",
+        "반드시 확인할 요소:",
+        "1. 카메라 수: 같은 인물/장면이 서로 다른 실제 촬영 각도나 구도로 반복 등장할 때만 2캠/3캠으로 봅니다. 크롭, 줌, 컷어웨이, B-roll, 자료 화면은 별도 카메라로 세지 마세요.",
+        "2. B-roll: 메인 인터뷰/토크 외에 현장 스케치, 제품 컷, 보조 장면, 화면 설명용 영상이 들어가는지 봅니다.",
+        "3. 자료 삽입: 사진, 기사, 캡처, 도표, 화면 녹화, 스톡 이미지/영상, 브랜드 자료가 들어가는지 봅니다.",
+        "4. 그래픽/모션: 도형, 인포그래픽, 키네틱 타이포, 추적 자막, 마스킹, 합성, 화면 분할, 애니메이션을 봅니다.",
+        "5. 자막/타이포: 전체 말자막인지, 포인트 자막인지, 색/박스/강조/이모지/폰트 디자인이 많은지 봅니다.",
+        "6. 컷 리듬: 10초 안의 컷 수, 점프컷 빈도, 줌/리프레임, 전환 효과가 많은지 봅니다.",
+        "7. 색/룩: 단순 보정인지, 광고형 룩/강한 색감/복잡한 매칭이 필요한지 봅니다.",
+        "",
+        "접근 불가 처리:",
+        "- 영상 화면이나 첨부 프레임을 실제로 볼 수 없으면 difficulty를 medium으로 임시 선택하지 마세요.",
+        "- 이 경우 confidence는 0.25 이하, needsFrameEvidence는 true로 두고, visualEvidence.missing에 필요한 프레임/스크린샷을 적으세요.",
+        "- 화면을 볼 수 없을 때는 캠 수, B-roll, 그래픽, 자막 밀도를 확정하지 말고 unknown/null로 둡니다.",
         "",
         "보이지 않는 오디오 상태, 원본 촬영 길이, 작업자의 실력은 추측하지 마세요.",
         hasLink ? `레퍼런스 링크: ${state.url}` : "",
@@ -4354,7 +4432,7 @@
             `화면 디테일 ${Math.round((metrics.detailDensity || 0) * 100)}%, ` +
             `명암 대비 ${Math.round(metrics.contrast || 0)}/100, ` +
             `색 밀도 ${Math.round((metrics.saturation || 0) * 100)}%`
-          : "영상 재생이나 화면 확인이 불가능하면 내용을 추측하지 말고 confidence를 0.3 이하로 낮추세요.",
+          : "링크만으로는 부족하면 사용자가 프레임 시트나 6장 이상 스크린샷을 첨부해야 한다고 표시하세요.",
         "",
         "설명 문장이나 마크다운 없이 아래 JSON 형식만 반환하세요.",
         "{",
@@ -4367,6 +4445,16 @@
         '  "cameraConfidence": 0부터 1 사이 숫자,',
         '  "cameraReason": "서로 다른 촬영 각도 근거를 한국어로 설명",',
         '  "editingPace": "slow 또는 medium 또는 fast 또는 unknown",',
+        '  "needsFrameEvidence": true 또는 false,',
+        '  "visualEvidence": {',
+        '    "camera": ["카메라 수 판단에 쓴 장면 근거"],',
+        '    "broll": ["B-roll이나 보조 영상 근거"],',
+        '    "graphics": ["그래픽, 자료 화면, 삽입 소스 근거"],',
+        '    "subtitles": ["자막/타이포그래피 근거"],',
+        '    "motion": ["모션그래픽, 마스킹, 트래킹, 화면분할 근거"],',
+        '    "pacing": ["컷 리듬, 줌, 전환 근거"],',
+        '    "missing": ["확인하지 못한 정보 또는 추가로 필요한 프레임"]',
+        '  },',
         '  "workFactors": {',
         '    "cutDensity": "low 또는 medium 또는 high 또는 unknown",',
         '    "subtitleDensity": "low 또는 medium 또는 high 또는 unknown",',
@@ -4646,9 +4734,12 @@
         calculate();
         renderReferenceAnalysis(referenceAnalysisState);
         saveState();
-        status.textContent = "ChatGPT 분석 결과를 확인했습니다. 적용할 항목을 선택해주세요.";
-        document.getElementById("copyState").textContent =
-          "ChatGPT 레퍼런스 분석 결과를 불러왔습니다. 현재 견적값은 아직 바뀌지 않았습니다.";
+        status.textContent = analysis.needsFrameEvidence
+          ? "영상 화면 증거가 부족합니다. 대표 프레임 시트나 스크린샷을 추가한 뒤 다시 분석해주세요."
+          : "ChatGPT 분석 결과를 확인했습니다. 적용할 항목을 선택해주세요.";
+        document.getElementById("copyState").textContent = analysis.needsFrameEvidence
+          ? "ChatGPT가 영상 화면을 확인하지 못해 견적에는 적용하지 않았습니다. 대표 프레임 시트나 스크린샷을 추가해주세요."
+          : "ChatGPT 레퍼런스 분석 결과를 불러왔습니다. 현재 견적값은 아직 바뀌지 않았습니다.";
       } catch (error) {
         status.textContent = error.message || "ChatGPT 답변을 반영하지 못했습니다.";
       }
@@ -4796,6 +4887,49 @@
       state.estimatedQuote = state.baseline.quote;
     }
 
+    function renderReferenceEvidence(state) {
+      const container = document.getElementById("referenceEvidenceList");
+      if (!container) return;
+      if (!state) {
+        container.innerHTML = "";
+        return;
+      }
+
+      const evidence = state.visualEvidence || {};
+      const items = Object.entries(referenceEvidenceLabels)
+        .map(([key, label]) => ({
+          key,
+          label,
+          values: normalizeEvidenceArray(evidence[key], key === "missing" ? 5 : 3)
+        }))
+        .filter((item) => item.values.length);
+
+      if (!items.length && Array.isArray(state.editingSignals) && state.editingSignals.length) {
+        items.push({
+          key: "signals",
+          label: "확인된 편집 신호",
+          values: state.editingSignals.slice(0, 6)
+        });
+      }
+
+      if (state.needsFrameEvidence && !items.some((item) => item.key === "missing")) {
+        items.unshift({
+          key: "missing",
+          label: "추가 확인 필요",
+          values: ["영상 화면을 직접 확인하지 못했습니다. 대표 프레임 시트나 6장 이상 스크린샷을 첨부해야 캠 수와 B-roll을 견적 근거로 쓸 수 있습니다."]
+        });
+      }
+
+      container.innerHTML = items
+        .map((item) => (
+          `<div class="reference-evidence-item ${item.key === "missing" ? "warning" : ""}">` +
+          `<strong>${escapeHtml(item.label)}</strong>` +
+          `<p>${item.values.map(escapeHtml).join(" · ")}</p>` +
+          "</div>"
+        ))
+        .join("");
+    }
+
     function renderReferenceAnalysis(state) {
       const result = document.getElementById("referenceResult");
       const thumbnail = document.getElementById("referenceThumbnail");
@@ -4806,6 +4940,7 @@
         thumbnail.hidden = true;
         thumbnail.removeAttribute("src");
         document.getElementById("referenceFactorList").innerHTML = "";
+        renderReferenceEvidence(null);
         badge.textContent = "분석 전";
         badge.className = "analysis-badge low";
         if (!document.getElementById("referenceUrl").value.trim()) status.textContent = "";
@@ -4820,11 +4955,13 @@
       badge.textContent = presentation.label;
       badge.className = `analysis-badge ${presentation.className}`;
       status.className = "reference-status ok";
-      status.textContent = state.analysisMode === "local"
-        ? "영상 프레임의 화면 변화와 디테일만 확인했습니다. 실제 편집 난도와 캠 수는 직접 확인하세요."
-        : state.analysisMode === "metadata"
-          ? "제목과 공개 정보만 사용한 참고용 추정입니다."
-          : "분석 결과를 확인하고 아래 제안 중 필요한 항목만 적용하세요.";
+      status.textContent = state.needsFrameEvidence
+        ? "영상 화면 증거가 부족합니다. 대표 프레임 시트나 스크린샷을 추가해야 견적에 적용할 수 있습니다."
+        : state.analysisMode === "local"
+          ? "영상 프레임의 화면 변화와 디테일만 확인했습니다. 실제 편집 난도와 캠 수는 직접 확인하세요."
+          : state.analysisMode === "metadata"
+            ? "제목과 공개 정보만 사용한 참고용 추정입니다."
+            : "분석 결과를 확인하고 아래 제안 중 필요한 항목만 적용하세요.";
 
       result.hidden = false;
       thumbnail.hidden = !state.thumbnail;
@@ -4853,6 +4990,7 @@
         .filter(([, level]) => level !== "unknown")
         .map(([key, level]) => `<span class="chip">${referenceFactorLabels[key]} ${factorLevelLabel[level]}</span>`)
         .join("");
+      renderReferenceEvidence(state);
       renderFrameAnalysisDetails(state);
     }
 
