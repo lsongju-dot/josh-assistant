@@ -284,6 +284,16 @@ let browserInstance;
   await page.evaluate(() => { document.getElementById("useAiFrameAnalysis").checked = false; updateReferenceAnalysisMode(); });
   await page.click("#analyzeReferenceButton");
   await page.waitForFunction(() => !document.getElementById("referenceResult").hidden);
+  check(await page.locator("#referenceFactorList .chip").count() === 13, "quick estimate shows all work factors");
+  check(
+    (await page.textContent("#referenceFactorList")).includes("빠른 추정"),
+    "quick estimate labels factor confidence",
+    JSON.stringify(await page.evaluate(() => ({ mode: referenceAnalysisState?.analysisMode, factors: referenceAnalysisState?.workFactors, text: document.getElementById("referenceFactorList").textContent })))
+  );
+  check((await page.textContent("#referenceCameraCount")).includes("1캠 가정"), "quick estimate exposes one-camera assumption");
+  check((await page.textContent("#referencePace")).includes("가정"), "quick estimate exposes pace assumption");
+  check(await page.isVisible("#referenceApplyPanel"), "quick estimate suggestions require confirmation");
+  check(!(await page.textContent("#referenceDifficultyChange")).includes("유지"), "quick estimate passes difficulty suggestion to apply panel");
   const generatedPrompt = await page.inputValue("#chatgptPromptText");
   check(generatedPrompt.includes(referenceUrl), "ChatGPT prompt generation", generatedPrompt.slice(0, 240));
   const popupPromise = page.waitForEvent("popup");

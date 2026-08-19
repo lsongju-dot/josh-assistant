@@ -79,6 +79,7 @@ const factory = new Function(
     getShortformQuoteValues,
     extractFinalSeconds,
     extractDeadlineDate,
+    quickReferenceWorkFactors,
     parseChatgptAnalysisResult,
     countSelectedWorkdays,
     addBusinessDaysAfter,
@@ -99,6 +100,11 @@ equal(
   "2026-08-21",
   "relative weekday deadline parser"
 );
+const quickSignals = app.quickReferenceWorkFactors("유튜브 인터뷰 브이로그", "YouTube", "unknown");
+equal(Object.keys(quickSignals.workFactors).length, 13, "quick estimate fills 13 work factors");
+equal(quickSignals.contentType, "longform", "YouTube watch defaults to longform estimate");
+equal(quickSignals.estimatedCameraCount, 1, "quick estimate uses one-camera assumption");
+equal(quickSignals.editingPace, "slow", "quick estimate infers interview pace");
 equal(
   app.extractYouTubeVideoId(new URL("https://youtu.be/K36Et8h552w?si=test")),
   "K36Et8h552w",
@@ -166,6 +172,8 @@ check(scripts[0].includes("sourceQuoteId") && scripts[0].includes("quote-period"
 check(scripts[0].includes('confidence: 0.3') && scripts[0].includes('confidence: 0.6'), "reference confidence levels are explicit");
 check(html.includes('data-mobile-target="reference"') && html.includes('data-mobile-target="result"'), "mobile quote navigation exists");
 check(scripts[0].includes("pendingReferenceSuggestion") && scripts[0].includes("applyPendingReferenceSuggestions"), "reference analysis requires explicit apply");
+check(scripts[0].includes("applyReferenceEstimateToControls(analysis, contentType)"), "quick estimate passes keyword analysis to suggestions");
+check(scripts[0].includes('analysisMode: "metadata"') && scripts[0].includes("quickReferenceWorkFactors"), "quick estimate metadata mode is labeled and detailed");
 check(edge.includes("workFactors") && scripts[0].includes("referenceFactorLabels"), "AI work factors are itemized");
 check(html.includes("grid-template-columns: repeat(7, minmax(0, 1fr));"), "mobile calendar keeps seven columns");
 check(/josh-cache-v\d+/.test(worker), "service worker cache has a version");

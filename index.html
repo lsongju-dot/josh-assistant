@@ -726,6 +726,13 @@
       gap: 6px;
     }
 
+    .reference-factor-note {
+      flex: 1 1 100%;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
     .quick-quote-message {
       margin: 0;
       color: var(--muted);
@@ -4167,8 +4174,10 @@
       pendingReferenceSuggestion = {
         contentType,
         quoteMode: contentType === "shortform" ? "shortform" : contentType === "longform" ? "longform" : currentMode,
+        assumedCameraCount: cameraCount,
         cameraCount: cameraConfidence >= 0.6 ? cameraCount : null,
         cameraConfidence,
+        cameraReason: analysis?.cameraReason || "",
         difficultyValue: Number(analysis?.difficultyValue) || null,
         workFactors: analysis?.workFactors || {},
         currentMode,
@@ -4190,7 +4199,9 @@
         `${suggestion.currentMode === "shortform" ? "숏폼" : "롱폼"} → ${referenceContentTypeLabel(suggestion.contentType)}`;
       document.getElementById("referenceCameraChange").textContent = suggestion.cameraCount
         ? `${suggestion.currentCamera}캠 → ${suggestion.cameraCount}캠 · 신뢰 ${Math.round(suggestion.cameraConfidence * 100)}%`
-        : `${suggestion.currentCamera}캠 유지 · 추정 불충분`;
+        : suggestion.assumedCameraCount
+          ? `${suggestion.currentCamera}캠 유지 · ${suggestion.assumedCameraCount}캠 가정 · 신뢰 ${Math.round(suggestion.cameraConfidence * 100)}%`
+          : `${suggestion.currentCamera}캠 유지 · 추정 불충분`;
       document.getElementById("referenceDifficultyChange").textContent = suggestion.difficultyValue
         ? `${suggestion.currentDifficulty}배 → ${suggestion.difficultyValue}배`
         : `${suggestion.currentDifficulty}배 유지`;
@@ -4318,6 +4329,76 @@
         surchargePerMinute: 0,
         difficultyValue: 1.25,
         reason: "공개 제목과 링크에서 고급 모션·복잡한 자료 구성 신호가 확인되지 않았습니다."
+      };
+    }
+
+    function quickReferenceWorkFactors(text, platform, contentType = "unknown") {
+      const source = String(text || "").toLowerCase();
+      const isShortform = contentType === "shortform" || /shorts|reels|tiktok|쇼츠|숏폼/.test(source);
+      const isInfo = /interview|인터뷰|정보|강의|lecture|tutorial|튜토리얼|review|리뷰|다큐|documentary/.test(source);
+      const has = (...terms) => terms.some((term) => source.includes(term));
+      const factors = {
+        cutDensity: isShortform ? "high" : "medium",
+        subtitleDensity: isShortform ? "high" : "medium",
+        pointTypography: "low",
+        inserts: "low",
+        broll: isInfo && has("브이로그", "vlog", "리뷰", "review") ? "medium" : "low",
+        motionGraphics: "low",
+        maskingTracking: "low",
+        zoomReframe: isShortform ? "medium" : "low",
+        soundEffects: isShortform ? "medium" : "low",
+        musicEditing: "medium",
+        color: "medium",
+        research: isInfo ? "medium" : "low",
+        multicam: "low"
+      };
+      const promote = (key, level, ...terms) => {
+        if (has(...terms)) factors[key] = level;
+      };
+      promote("pointTypography", "high", "자막", "subtitle", "caption", "타이포", "인포그래픽");
+      promote("inserts", "high", "자료", "스톡", "stock", "소스", "캡처", "화면 삽입", "b-roll", "broll");
+      promote("broll", "high", "b-roll", "broll", "브이롤", "스톡", "stock");
+      promote("motionGraphics", "high", "motion", "모션", "graphics", "그래픽", "vfx", "3d", "animation", "애니메이션", "트랜지션", "transition");
+      promote("maskingTracking", "high", "mask", "마스킹", "tracking", "트래킹", "로토", "합성");
+      promote("zoomReframe", "high", "zoom", "줌", "reframe", "리프레임", "세로 리프레임");
+      promote("soundEffects", "high", "효과음", "sound effect", "sfx");
+      promote("musicEditing", "high", "bgm", "음악", "music", "사운드트랙");
+      promote("color", "high", "색보정", "color grade", "cinematic", "시네마틱");
+      promote("research", "high", "자료 조사", "리서치", "research");
+      promote("cutDensity", "high", "빠른 컷", "촘촘한 컷", "fast cut", "dynamic", "다이내믹");
+      promote("multicam", "high", "멀티캠", "multi-cam", "multicam", "2캠", "3캠");
+
+      const explicitCamera = source.match(/(?:([1-3])\s*캠|캠\s*([1-3])|([1-3])\s*camera|multi[-\s]?cam|멀티캠)/i);
+      const explicitCount = explicitCamera
+        ? Number(explicitCamera[1] || explicitCamera[2] || explicitCamera[3] || (has("3캠") ? 3 : 2))
+        : 1;
+      const cameraConfidence = explicitCamera ? 0.75 : 0.25;
+      const cameraReason = explicitCamera
+        ? `제목·링크에서 ${explicitCount}캠 표현을 확인했습니다.`
+        : "캠 수가 공개 정보에 없어 1캠을 임시 가정했습니다. 실제 견적 전 촬영본을 확인하세요.";
+      const editingPace = isShortform
+        ? "fast"
+        : /강의|lecture|podcast|팟캐스트|다큐|documentary|인터뷰/.test(source)
+          ? "slow"
+          : "medium";
+      const paceConfidence = isShortform || /강의|lecture|podcast|팟캐스트|다큐|documentary|인터뷰/.test(source) ? 0.55 : 0.3;
+      const resolvedContentType = contentType !== "unknown"
+        ? contentType
+        : isShortform
+          ? "shortform"
+          : platform === "YouTube"
+            ? "longform"
+            : "unknown";
+      return {
+        workFactors: factors,
+        estimatedCameraCount: explicitCount,
+        cameraConfidence,
+        cameraReason,
+        editingPace,
+        paceConfidence,
+        contentType: resolvedContentType,
+        contentTypeConfidence: resolvedContentType === "longform" && platform === "YouTube" ? 0.3 : 0.55,
+        factorConfidence: 0.25
       };
     }
 
@@ -5098,7 +5179,7 @@
       status.textContent = state.analysisMode === "local"
         ? "영상 프레임의 화면 변화와 디테일만 확인했습니다. 실제 편집 난도와 캠 수는 직접 확인하세요."
         : state.analysisMode === "metadata"
-          ? "제목과 공개 정보만 사용한 참고용 추정입니다."
+          ? "빠른 추정: 제목·링크 키워드로 기본 작업량을 가정했습니다. 캠 수와 실제 화면 구성은 견적 확정 전에 확인하세요."
           : "분석 결과를 확인하고 아래 제안 중 필요한 항목만 적용하세요.";
 
       result.hidden = false;
@@ -5111,9 +5192,13 @@
       const cameraCount = Number(state.estimatedCameraCount) || 0;
       const cameraConfidence = Math.round((Number(state.cameraConfidence) || 0) * 100);
       document.getElementById("referenceCameraCount").textContent = cameraCount
-        ? `${cameraCount}캠 추정 · ${cameraConfidence}%`
+        ? `${cameraCount}캠 ${cameraConfidence >= 60 ? "추정" : "가정"} · ${cameraConfidence}%`
         : "분석 필요";
-      document.getElementById("referencePace").textContent = referencePaceLabel(state.editingPace);
+      const paceConfidence = Math.round((Number(state.paceConfidence) || 0) * 100);
+      document.getElementById("referenceContentType").textContent =
+        `${referenceContentTypeLabel(state.contentType)}${state.contentTypeConfidence && state.contentTypeConfidence < 0.6 ? ` 가정 · ${Math.round(state.contentTypeConfidence * 100)}%` : ""}`;
+      document.getElementById("referencePace").textContent =
+        `${referencePaceLabel(state.editingPace)}${paceConfidence && paceConfidence < 60 ? ` 가정 · ${paceConfidence}%` : ""}`;
       document.getElementById("referenceDifficulty").textContent = state.label;
       document.getElementById("referenceSurcharge").textContent =
         state.contentType === "shortform"
@@ -5124,7 +5209,10 @@
       document.getElementById("referenceQuote").textContent = formatKrw(state.baseline?.quote || state.estimatedQuote);
       const factorList = document.getElementById("referenceFactorList");
       const factorLevelLabel = { low: "낮음", medium: "보통", high: "높음", unknown: "확인 필요" };
-      factorList.innerHTML = Object.entries(state.workFactors || {})
+      const factorNote = state.analysisMode === "metadata"
+        ? `<span class="reference-factor-note">빠른 추정 · 제목·링크 키워드 기반 기본값입니다. 세부항목 신뢰도 약 ${Math.round((Number(state.factorConfidence) || 0.25) * 100)}%이며, 높은 항목만 추가 작업 후보로 봅니다.</span>`
+        : "";
+      factorList.innerHTML = factorNote + Object.entries(state.workFactors || {})
         .filter(([, level]) => level !== "unknown")
         .map(([key, level]) => `<span class="chip">${referenceFactorLabels[key]} ${factorLevelLabel[level]}</span>`)
         .join("");
@@ -5372,12 +5460,19 @@
           aiFailure = "AI 자동 링크 분석은 현재 YouTube 공개 링크만 지원합니다.";
         }
 
-        const analysis = referenceKeywordAnalysis(
+        const keywordAnalysis = referenceKeywordAnalysis(
           `${metadata.title} ${url.hostname} ${url.pathname} ${url.search}`,
           platform
         );
-        const contentType = inferReferenceContentType(url);
-        applyReferenceEstimateToControls({}, contentType);
+        const initialContentType = inferReferenceContentType(url);
+        const quickSignals = quickReferenceWorkFactors(
+          `${metadata.title} ${url.hostname} ${url.pathname} ${url.search}`,
+          platform,
+          initialContentType
+        );
+        const analysis = { ...keywordAnalysis, ...quickSignals };
+        const contentType = initialContentType === "unknown" ? quickSignals.contentType : initialContentType;
+        applyReferenceEstimateToControls(analysis, contentType);
         referenceAnalysisState = {
           sourceType: "metadata",
           url: url.href,
@@ -5385,15 +5480,22 @@
           platform,
           title: metadata.title,
           thumbnail: metadata.thumbnail,
+          analysisMode: "metadata",
           contentType,
           confidence: 0.3,
-          estimatedCameraCount: null,
-          cameraConfidence: 0,
-          cameraReason: "제목과 링크만으로는 카메라 수를 추정할 수 없습니다.",
-          editingPace: "unknown",
+          contentTypeConfidence: quickSignals.contentTypeConfidence,
+          factorConfidence: quickSignals.factorConfidence,
+          paceConfidence: quickSignals.paceConfidence,
+          estimatedCameraCount: quickSignals.estimatedCameraCount,
+          cameraConfidence: quickSignals.cameraConfidence,
+          cameraReason: quickSignals.cameraReason,
+          editingPace: quickSignals.editingPace,
           estimatedQuote: 0,
           applied: false,
-          ...analysis
+          ...analysis,
+          contentType,
+          confidence: 0.3,
+          reason: `${analysis.reason} 빠른 추정에서는 13개 세부항목을 제목·링크 신호로 보수적으로 채웠습니다.`
         };
         calculate();
         renderReferenceAnalysis(referenceAnalysisState);
