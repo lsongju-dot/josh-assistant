@@ -17,11 +17,11 @@
       --panel-soft: #e9ebdf;
       --line: #cbc8b8;
       --text: #28302a;
-      --muted: #6c7168;
+      --muted: #565b52;
       --accent: #66734a;
       --accent-strong: #495632;
       --accent-soft: #e1e5d3;
-      --warn: #9a632e;
+      --warn: #80501f;
       --danger: #a4473f;
       --ok: #476a50;
       --success-soft: #e4ece0;
@@ -82,7 +82,7 @@
 
     .topbar {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 38px;
+      grid-template-columns: minmax(0, 1fr) 72px;
       align-items: center;
       gap: 12px;
       padding: 9px 16px;
@@ -96,7 +96,7 @@
     }
 
     .topbar.is-expanded {
-      grid-template-columns: auto minmax(0, 1fr) 38px;
+      grid-template-columns: auto minmax(0, 1fr) 72px;
       padding: 14px 20px;
     }
 
@@ -139,13 +139,15 @@
     }
 
     .button.topbar-toggle {
-      width: 38px;
-      min-width: 38px;
+      width: 72px;
+      min-width: 72px;
       padding: 0;
+      gap: 4px;
       justify-content: center;
       justify-self: end;
       font-size: 18px;
       line-height: 1;
+      white-space: nowrap;
       border-color: #b9bda8;
       background: var(--accent-soft);
       color: var(--accent-strong);
@@ -202,12 +204,37 @@
       color: white;
     }
 
-    .button:focus-visible,
+    button:focus-visible,
     input:focus-visible,
     select:focus-visible,
-    textarea:focus-visible {
-      outline: 3px solid rgba(102, 115, 74, 0.28);
+    textarea:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid rgba(73, 86, 50, 0.42);
       outline-offset: 2px;
+    }
+
+    .button.destructive {
+      border-color: #c7958d;
+      background: #fbf2ef;
+      color: #873b34;
+    }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 28px;
+      background: var(--line);
+    }
+
+    .account-pill {
+      min-height: 30px;
+      padding: 4px 9px;
+      border: 1px solid #b9bda8;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
     }
 
     .auth-strip {
@@ -383,7 +410,7 @@
 
     .field-note {
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.4;
     }
 
@@ -479,7 +506,7 @@
 
     .service-name span {
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -495,7 +522,7 @@
     .service-cost small {
       display: block;
       color: var(--muted);
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 600;
       margin-top: 2px;
     }
@@ -551,7 +578,7 @@
       display: block;
       margin-top: 6px;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       font-style: normal;
       line-height: 1.35;
       overflow-wrap: anywhere;
@@ -854,7 +881,7 @@
       border-radius: 999px;
       background: var(--panel-soft);
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
       white-space: nowrap;
     }
@@ -1004,7 +1031,7 @@
       padding: 6px;
       background: var(--panel-soft);
       color: var(--text);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.25;
       display: grid;
       gap: 3px;
@@ -1044,6 +1071,27 @@
       color: var(--muted);
       font-size: 12px;
       line-height: 1.45;
+    }
+
+    .calendar-empty {
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border: 1px dashed var(--line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .calendar-item.quote-period {
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .calendar-item.quote-report {
+      border-left: 3px solid var(--warn);
+      background: var(--warning-soft);
+      color: var(--warn);
     }
 
     .longform-panel {
@@ -1120,7 +1168,7 @@
     .subscription-budget-note {
       margin: 8px 0 0;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.45;
     }
 
@@ -1204,7 +1252,7 @@
 
     .longform-case-value span {
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
     }
 
@@ -1248,7 +1296,7 @@
 
     .reference-progress span {
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
     }
 
@@ -1258,7 +1306,7 @@
       gap: 8px;
       margin-top: 8px;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.45;
     }
 
@@ -1296,7 +1344,7 @@
     .chatgpt-bridge-header span,
     .chatgpt-bridge-status {
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.45;
     }
 
@@ -1398,45 +1446,13 @@
       border-radius: 7px;
       background: var(--input-bg);
       color: var(--muted);
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
     }
 
     .reference-analysis-values b {
       color: var(--text);
       font-size: 14px;
-    }
-
-    .reference-evidence-list {
-      display: grid;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .reference-evidence-item {
-      border: 1px solid rgba(96, 111, 103, 0.18);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.55);
-      padding: 9px 10px;
-    }
-
-    .reference-evidence-item strong {
-      display: block;
-      margin-bottom: 4px;
-      color: var(--text);
-      font-size: 12px;
-    }
-
-    .reference-evidence-item p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .reference-evidence-item.warning {
-      border-color: rgba(154, 99, 46, 0.28);
-      background: #fff7eb;
     }
 
     .frame-analysis-detail {
@@ -1454,7 +1470,7 @@
       border-radius: 7px;
       background: var(--input-bg);
       color: var(--muted);
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
     }
 
@@ -1487,7 +1503,7 @@
     .reference-frame-grid figcaption {
       margin-top: 3px;
       color: var(--muted);
-      font-size: 9px;
+      font-size: 12px;
       text-align: center;
     }
 
@@ -1585,7 +1601,7 @@
     @media (max-width: 820px) {
       .topbar,
       .topbar.is-expanded {
-        grid-template-columns: minmax(0, 1fr) 38px;
+        grid-template-columns: minmax(0, 1fr) 72px;
         align-items: center;
         padding: 9px 16px;
       }
@@ -1834,7 +1850,7 @@
 
       .calendar-day-name {
         min-height: 28px;
-        font-size: 10px;
+        font-size: 11px;
       }
 
       .calendar-cell {
@@ -1846,13 +1862,13 @@
       }
 
       .calendar-date {
-        font-size: 10px;
+        font-size: 11px;
       }
 
       .calendar-item {
         min-width: 0;
         padding: 3px;
-        font-size: 8px;
+        font-size: 10px;
         line-height: 1.2;
       }
 
@@ -1918,7 +1934,7 @@
       display: block;
       margin-top: 2px;
       color: inherit;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
     }
 
@@ -1985,14 +2001,84 @@
       border-radius: 6px;
       background: var(--input-bg);
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
     }
 
     .quote-step.is-active {
       border-color: var(--accent);
       background: var(--accent-soft);
       color: var(--accent-strong);
+    }
+
+    .quote-step.is-complete::before {
+      content: "\2713";
+      margin-right: 4px;
+      color: var(--ok);
+    }
+
+    .chip-groups {
+      display: grid;
+      gap: 8px;
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .chip-group-label {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .deadline-warning {
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .pricing-settings-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pricing-camera-group {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #f8f5eb;
+    }
+
+    .pricing-camera-group h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .undo-bar {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: min(460px, calc(100vw - 28px));
+      padding: 10px 12px;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      color: var(--text);
+      font-size: 12px;
     }
 
     .mode-switch {
@@ -2035,7 +2121,7 @@
       border-radius: 5px;
       background: var(--panel-soft);
       color: var(--muted);
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 900;
       vertical-align: middle;
     }
@@ -2063,7 +2149,7 @@
       border-radius: 7px;
       background: var(--input-bg);
       color: var(--text);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
     }
@@ -2111,11 +2197,6 @@
       background: var(--accent-soft);
     }
 
-    .reference-apply-panel.is-provisional {
-      border-color: #b8833e;
-      background: var(--warning-soft);
-    }
-
     .reference-apply-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2129,7 +2210,7 @@
       border: 1px solid rgba(102, 115, 74, 0.35);
       border-radius: 6px;
       background: rgba(255, 254, 250, 0.8);
-      font-size: 11px;
+      font-size: 12px;
     }
 
     .reference-apply-actions,
@@ -2160,9 +2241,9 @@
       background: var(--accent-soft);
     }
 
-    .decision-card span { color: var(--muted); font-size: 11px; font-weight: 800; }
+    .decision-card span { color: var(--muted); font-size: 12px; font-weight: 800; }
     .decision-card strong { font-size: 22px; font-variant-numeric: tabular-nums; }
-    .decision-card em { color: var(--muted); font-size: 10px; font-style: normal; line-height: 1.4; }
+    .decision-card em { color: var(--muted); font-size: 12px; font-style: normal; line-height: 1.4; }
 
     .breakdown-list {
       display: grid;
@@ -2176,7 +2257,7 @@
       padding-bottom: 7px;
       border-bottom: 1px dashed var(--line);
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
     }
 
     .breakdown-row strong { color: var(--text); }
@@ -2190,7 +2271,7 @@
       border-radius: 6px;
       background: #f7f5ed;
       color: var(--muted);
-      font: 11px/1.5 "Segoe UI", sans-serif;
+      font: 12px/1.5 "Segoe UI", sans-serif;
       white-space: pre-wrap;
     }
 
@@ -2198,7 +2279,7 @@
       margin: 8px 0 0;
       padding-left: 18px;
       color: var(--warn);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.5;
     }
 
@@ -2239,7 +2320,7 @@
     @media (max-width: 820px) {
       body { padding-bottom: 72px; }
       .workspace-nav { display: none; }
-      .auth-strip { display: none; }
+      .auth-strip:not([hidden]) { display: grid; padding: 10px; }
       .layout[data-workspace] { display: flex; flex-direction: column; padding: 10px; }
       .layout[data-workspace] > .panel { margin-bottom: 10px; }
       .layout[data-workspace="quote"] #quoteFlowPanel { order: 0; }
@@ -2249,8 +2330,9 @@
       .layout[data-workspace="quote"] #summaryPanel { order: 4; }
       .quote-flow-body { grid-template-columns: 1fr; }
       .quote-flow-copy h2 { font-size: 18px; }
-      .quote-steps { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
-      .quote-step { flex: 0 0 auto; }
+      .quote-steps { overflow: visible; flex-wrap: wrap; padding-bottom: 4px; }
+      .quote-step { flex: 1 1 calc(50% - 6px); min-height: 44px; justify-content: center; }
+      .account-pill { min-height: 44px; }
       .mode-switch { width: 100%; }
       .mode-switch button { min-height: 44px; }
       .project-detail-grid,
@@ -2258,6 +2340,7 @@
       .material-grid,
       .reference-apply-grid,
       .decision-grid { grid-template-columns: 1fr; }
+      .pricing-settings-grid { grid-template-columns: 1fr; }
       .reference-form,
       .reference-file-form { grid-template-columns: 1fr; }
       .reference-result { grid-template-columns: 1fr; }
@@ -2281,7 +2364,7 @@
         border-radius: 6px;
         background: transparent;
         color: var(--muted);
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 900;
       }
       .mobile-bottom-nav button.is-active { background: var(--accent-soft); color: var(--accent-strong); }
@@ -2296,13 +2379,14 @@
       <div class="brand">
         <h1>조쉬</h1>
         <span>영상편집 견적 · 작업시간 · 일정 비서</span>
+        <button class="account-pill" id="headerAuthButton" type="button">로그인 필요</button>
       </div>
       <div class="top-actions" id="topActions">
-        <button class="button" id="presetOutsourceButton" type="button">정기 외주 예시</button>
-        <button class="button" id="applyButton" type="button">계산 실행</button>
+        <button class="button destructive" id="presetOutsourceButton" type="button">정기 외주 예시</button>
+        <span class="toolbar-divider" aria-hidden="true"></span>
         <button class="button" id="exportButton" type="button">백업 복사</button>
         <button class="button" id="importButton" type="button">백업 가져오기</button>
-        <button class="button" id="resetButton" type="button">초기값</button>
+        <button class="button destructive" id="resetButton" type="button">초기값</button>
         <button class="button primary" id="copyButton" type="button">요약 복사</button>
       </div>
       <button
@@ -2314,7 +2398,7 @@
         aria-label="상단 메뉴 펼치기"
         title="상단 메뉴 펼치기"
       >
-        <span class="topbar-toggle-icon" aria-hidden="true">▾</span>
+        <span>도구</span><span class="topbar-toggle-icon" aria-hidden="true">▾</span>
       </button>
     </header>
 
@@ -2345,13 +2429,13 @@
             <h2 id="quoteFlowTitle">새 영상 견적</h2>
             <p>고객 문의와 레퍼런스를 바탕으로 실제 작업량을 확인하고, 내가 지켜야 할 금액과 고객에게 제안할 금액을 따로 계산합니다.</p>
             <div class="quote-steps" aria-label="견적 진행 순서">
-              <span class="quote-step is-active">1 문의 입력</span>
-              <span class="quote-step">2 레퍼런스</span>
-              <span class="quote-step">3 분석 확인</span>
-              <span class="quote-step">4 조건 조정</span>
-              <span class="quote-step">5 견적</span>
-              <span class="quote-step">6 근거</span>
-              <span class="quote-step">7 고객용 결과</span>
+              <button class="quote-step is-active" type="button" data-quote-step="1" data-step-target="quickQuotePanel">1 문의 입력</button>
+              <button class="quote-step" type="button" data-quote-step="2" data-step-target="referenceUrl">2 레퍼런스</button>
+              <button class="quote-step" type="button" data-quote-step="3" data-step-target="referenceApplyPanel">3 분석 확인</button>
+              <button class="quote-step" type="button" data-quote-step="4" data-step-target="settingsPanel">4 조건 조정</button>
+              <button class="quote-step" type="button" data-quote-step="5" data-step-target="summaryPanel">5 견적</button>
+              <button class="quote-step" type="button" data-quote-step="6" data-step-target="quoteBreakdown">6 근거</button>
+              <button class="quote-step" type="button" data-quote-step="7" data-step-target="copyCustomerQuoteButton">7 고객용 결과</button>
             </div>
           </div>
           <div class="mode-switch" role="group" aria-label="견적 입력 모드">
@@ -2525,6 +2609,7 @@
               <label for="deadline">작업 마감일</label>
               <input id="deadline" type="date">
               <small class="field-note" id="workdayRangeSummary">달력 기간을 선택하면 작업 가능일을 계산합니다.</small>
+              <small class="deadline-warning" id="deadlineWarning" role="alert"></small>
             </div>
           </div>
         </div>
@@ -2532,7 +2617,7 @@
 
       <section class="panel services-panel" id="servicesPanel" aria-labelledby="servicesTitle">
         <div class="panel-header">
-          <h2 id="servicesTitle">유료 프로그램</h2>
+          <h2 id="servicesTitle">도구·프로그램 비용 관리</h2>
         </div>
         <div class="panel-body">
           <div class="subscription-budget" aria-live="polite">
@@ -2565,6 +2650,10 @@
             </div>
           </div>
           <div class="services" id="services"></div>
+          <div class="result-actions" aria-label="데이터 안전 도구">
+            <button class="button" id="manageExportButton" type="button">백업 복사</button>
+            <button class="button" id="manageImportButton" type="button">백업 가져오기</button>
+          </div>
           <div class="sources">
             <a href="https://elements.envato.com/pricing" target="_blank" rel="noreferrer">Envato</a>
             <a href="https://openai.com/chatgpt/pricing/" target="_blank" rel="noreferrer">ChatGPT</a>
@@ -2722,6 +2811,10 @@
           <section class="quote-project-details" aria-labelledby="projectDetailsTitle">
             <h3 class="longform-section-title" id="projectDetailsTitle">고객 작업 조건</h3>
             <div class="project-detail-grid">
+              <div class="field full">
+                <label for="quoteProjectName">프로젝트명</label>
+                <input id="quoteProjectName" type="text" placeholder="예: 박준상 컨설턴트 월 4편">
+              </div>
               <div class="field">
                 <label for="originalMinutes">원본 촬영 길이(분) <span class="source-badge" data-source-for="originalMinutes">직접 입력</span></label>
                 <input id="originalMinutes" type="number" min="0" step="1" value="40" inputmode="numeric">
@@ -2926,7 +3019,6 @@
                   <span>예상 권장가<b id="referenceQuote">-</b></span>
                 </div>
                 <div class="quick-quote-chips" id="referenceFactorList"></div>
-                <div class="reference-evidence-list" id="referenceEvidenceList"></div>
               </div>
             </div>
             <div class="reference-apply-panel" id="referenceApplyPanel" hidden>
@@ -3108,7 +3200,49 @@
               <button class="button" id="nextMonthButton" type="button">다음</button>
             </div>
           </div>
+          <div class="calendar-empty" id="calendarEmptyState">저장한 견적의 작업 기간과 마감일이 여기에 표시됩니다.</div>
           <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="baseRatesPanel" aria-labelledby="baseRatesTitle">
+        <div class="panel-header">
+          <h2 id="baseRatesTitle">기본 단가</h2>
+        </div>
+        <div class="panel-body">
+          <p class="field-note">여기서 바꾼 값은 롱폼·숏폼·시간 기준 견적에 즉시 반영됩니다.</p>
+          <div class="pricing-settings-grid">
+            <section class="pricing-camera-group" aria-label="1캠 기본 단가">
+              <h3>1캠</h3>
+              <div class="field"><label for="rate1Hourly">희망 시급</label><input id="rate1Hourly" type="number" min="0" step="1000" value="30000"></div>
+              <div class="field"><label for="rate1Floor">분당 방어선</label><input id="rate1Floor" type="number" min="0" step="1000" value="15000"></div>
+              <div class="field"><label for="rate1Recommended">분당 권장가</label><input id="rate1Recommended" type="number" min="0" step="1000" value="18000"></div>
+              <div class="field"><label for="rate1High">분당 고난도</label><input id="rate1High" type="number" min="0" step="1000" value="22000"></div>
+              <div class="field"><label for="rate1Minimum">최소 작업비</label><input id="rate1Minimum" type="number" min="0" step="10000" value="90000"></div>
+            </section>
+            <section class="pricing-camera-group" aria-label="2캠 기본 단가">
+              <h3>2캠</h3>
+              <div class="field"><label for="rate2Hourly">희망 시급</label><input id="rate2Hourly" type="number" min="0" step="1000" value="40000"></div>
+              <div class="field"><label for="rate2Floor">분당 방어선</label><input id="rate2Floor" type="number" min="0" step="1000" value="22000"></div>
+              <div class="field"><label for="rate2Recommended">분당 권장가</label><input id="rate2Recommended" type="number" min="0" step="1000" value="25000"></div>
+              <div class="field"><label for="rate2High">분당 고난도</label><input id="rate2High" type="number" min="0" step="1000" value="30000"></div>
+              <div class="field"><label for="rate2Minimum">최소 작업비</label><input id="rate2Minimum" type="number" min="0" step="10000" value="130000"></div>
+            </section>
+            <section class="pricing-camera-group" aria-label="3캠 기본 단가">
+              <h3>3캠</h3>
+              <div class="field"><label for="rate3Hourly">희망 시급</label><input id="rate3Hourly" type="number" min="0" step="1000" value="50000"></div>
+              <div class="field"><label for="rate3Floor">분당 방어선</label><input id="rate3Floor" type="number" min="0" step="1000" value="30000"></div>
+              <div class="field"><label for="rate3Recommended">분당 권장가</label><input id="rate3Recommended" type="number" min="0" step="1000" value="35000"></div>
+              <div class="field"><label for="rate3HighMin">분당 고난도 하단</label><input id="rate3HighMin" type="number" min="0" step="1000" value="40000"></div>
+              <div class="field"><label for="rate3HighMax">분당 고난도 상단</label><input id="rate3HighMax" type="number" min="0" step="1000" value="45000"></div>
+              <div class="field"><label for="rate3Minimum">최소 작업비</label><input id="rate3Minimum" type="number" min="0" step="10000" value="180000"></div>
+            </section>
+            <section class="pricing-camera-group" aria-label="공통 견적 규칙">
+              <h3>공통 규칙</h3>
+              <div class="field"><label for="shortformMinimumRate">숏폼 편당 최소</label><input id="shortformMinimumRate" type="number" min="0" step="1000" value="30000"></div>
+              <div class="field"><label for="revisionSurchargeRate">추가 수정 회당 %</label><input id="revisionSurchargeRate" type="number" min="0" max="100" step="1" value="25"></div>
+            </section>
+          </div>
         </div>
       </section>
 
@@ -3212,7 +3346,7 @@
       <p class="modal-error" id="backupImportError" role="alert"></p>
       <div class="modal-actions">
         <button class="button primary" id="applyBackupImportButton" type="button" disabled>가져오기 적용</button>
-        <button class="button" id="resetThenImportButton" type="button" disabled>초기화 후 적용</button>
+        <button class="button destructive" id="resetThenImportButton" type="button" disabled>초기화 후 적용</button>
         <button class="button" id="cancelBackupImportButton" type="button">취소</button>
       </div>
     </div>
@@ -3227,11 +3361,27 @@
       <label class="check-tile"><input type="radio" name="resetScope" value="quote-schedules">견적과 일정 초기화</label>
       <label class="check-tile"><input type="radio" name="resetScope" value="all">모든 로컬 데이터 초기화</label>
       <div class="modal-actions">
-        <button class="button primary" id="confirmResetButton" type="button">선택 범위 초기화</button>
+        <button class="button destructive" id="confirmResetButton" type="button">선택 범위 초기화</button>
         <button class="button" id="cancelResetButton" type="button">취소</button>
       </div>
     </div>
   </dialog>
+
+  <dialog class="josh-modal" id="confirmActionDialog" aria-labelledby="confirmActionTitle">
+    <div class="modal-header"><h2 id="confirmActionTitle">입력값 변경 확인</h2></div>
+    <div class="modal-body">
+      <p class="field-note" id="confirmActionMessage">현재 입력값이 바뀝니다.</p>
+      <div class="modal-actions">
+        <button class="button destructive" id="confirmActionButton" type="button">계속</button>
+        <button class="button" id="cancelActionButton" type="button">취소</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="undo-bar" id="undoBar" hidden role="status">
+    <span id="undoMessage">변경했습니다.</span>
+    <button class="button" id="undoButton" type="button">되돌리기</button>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -3406,7 +3556,26 @@
       "referenceUrl",
       "originalMinutes",
       "sourceEditState",
-      "quoteValidityDays"
+      "quoteValidityDays",
+      "quoteProjectName",
+      "rate1Hourly",
+      "rate1Floor",
+      "rate1Recommended",
+      "rate1High",
+      "rate1Minimum",
+      "rate2Hourly",
+      "rate2Floor",
+      "rate2Recommended",
+      "rate2High",
+      "rate2Minimum",
+      "rate3Hourly",
+      "rate3Floor",
+      "rate3Recommended",
+      "rate3HighMin",
+      "rate3HighMax",
+      "rate3Minimum",
+      "shortformMinimumRate",
+      "revisionSurchargeRate"
     ];
 
     const quoteTaskPrices = {
@@ -3440,16 +3609,6 @@
       color: "색보정",
       research: "자료 조사",
       multicam: "멀티캠"
-    };
-
-    const referenceEvidenceLabels = {
-      camera: "카메라와 구도",
-      broll: "B-roll과 삽입 영상",
-      graphics: "그래픽과 자료 화면",
-      subtitles: "자막과 타이포",
-      motion: "모션과 트래킹",
-      pacing: "컷 리듬",
-      missing: "추가 확인 필요"
     };
 
     const cameraHourlyRates = {
@@ -3500,11 +3659,20 @@
       }
     };
 
+    const pricingRules = {
+      shortformMinimum: 30000,
+      revisionRate: 0.25
+    };
+
     let services = structuredClone(servicesSeed);
     let referenceAnalysisState = null;
     let pendingReferenceSuggestion = null;
     let selectedReferenceFile = null;
     let quoteMetaState = { tasks: [], materials: [], sources: {} };
+    let lastParsedQuoteLabels = [];
+    let pendingConfirmedAction = null;
+    let undoSnapshot = null;
+    let undoTimer = null;
 
     const schedulesSeed = [];
 
@@ -3524,8 +3692,32 @@
     });
 
     function numberValue(id) {
-      const value = Number(document.getElementById(id).value);
+      const value = Number(document.getElementById(id)?.value);
       return Number.isFinite(value) ? value : 0;
+    }
+
+    function applyPricingSettings() {
+      [1, 2, 3].forEach((camera) => {
+        const hourly = numberValue(`rate${camera}Hourly`);
+        const floor = numberValue(`rate${camera}Floor`);
+        const recommended = numberValue(`rate${camera}Recommended`);
+        const high = camera === 3
+          ? numberValue("rate3HighMax")
+          : numberValue(`rate${camera}High`);
+        const minimumFee = numberValue(`rate${camera}Minimum`);
+        if (hourly > 0) cameraHourlyRates[camera] = hourly;
+        if (floor > 0) longformRates[camera].floor = floor;
+        if (recommended > 0) longformRates[camera].recommended = recommended;
+        if (high > 0) {
+          longformRates[camera].highMin = camera === 3
+            ? Math.max(1, numberValue("rate3HighMin") || high)
+            : high;
+          longformRates[camera].highMax = high;
+        }
+        if (minimumFee > 0) longformRates[camera].minimumFee = minimumFee;
+      });
+      pricingRules.shortformMinimum = Math.max(1000, numberValue("shortformMinimumRate") || 30000);
+      pricingRules.revisionRate = Math.max(0, numberValue("revisionSurchargeRate")) / 100;
     }
 
     function roundToThousand(value) {
@@ -3538,6 +3730,12 @@
 
     function formatKrw(value) {
       return formatter.format(Math.max(0, Math.round(value)));
+    }
+
+    function formatSignedKrw(value) {
+      const amount = Math.round(Number(value) || 0);
+      if (!amount) return formatKrw(0);
+      return `${amount > 0 ? "+" : "-"}${formatKrw(Math.abs(amount))}`;
     }
 
     function setWorkspace(workspace, { scroll = false, targetId = "" } = {}) {
@@ -3555,6 +3753,7 @@
         schedulePanel: "work",
         calendarPanel: "work",
         servicesPanel: "manage",
+        baseRatesPanel: "manage",
         profitPanel: "manage"
       };
       Object.entries(panelWorkspace).forEach(([id, owner]) => {
@@ -3573,6 +3772,16 @@
         const target = document.getElementById(targetId) || layout;
         requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
       }
+    }
+
+    function setQuoteProgress(step) {
+      const current = Math.min(7, Math.max(1, Number(step) || 1));
+      document.querySelectorAll("[data-quote-step]").forEach((button) => {
+        const value = Number(button.dataset.quoteStep);
+        button.classList.toggle("is-active", value === current);
+        button.classList.toggle("is-complete", value < current);
+        button.setAttribute("aria-current", value === current ? "step" : "false");
+      });
     }
 
     function loadWorkspace() {
@@ -3613,6 +3822,9 @@
     function taskAddonTotal(minutes = Math.max(1, numberValue("longformFinalMinutes"))) {
       return selectedQuoteTasks().reduce((sum, key) => {
         const item = quoteTaskPrices[key];
+        if (key === "derivedShorts") {
+          return sum + (pricingRules.shortformMinimum * Math.max(1, Math.round(numberValue("shortformCount"))));
+        }
         return sum + (item.fixed || 0) + ((item.perMinute || 0) * minutes);
       }, 0);
     }
@@ -3838,14 +4050,19 @@
       const referenceSurcharge = Math.max(0, Number(referenceState?.surchargePerMinute) || 0);
       const referenceQuote = longform.recommendedQuote + (longform.minutes * referenceSurcharge);
       const additionalRevisions = Math.max(0, Math.round(Number(revisionRounds) || 1) - 1);
-      const revisionMultiplier = 1 + (additionalRevisions * 0.25);
-      const recommended = roundToThousand(
-        Math.max(difficultyQuote, referenceQuote) * rush * revisionMultiplier
-      );
+      const revisionMultiplier = 1 + (additionalRevisions * pricingRules.revisionRate);
+      const adjustedBase = Math.max(difficultyQuote, referenceQuote);
+      const recommendedRaw = adjustedBase * rush * revisionMultiplier;
+      const recommended = roundToThousand(recommendedRaw);
       const minimum = roundToThousand(longform.floorQuote * rush);
       return {
         recommended,
+        recommendedRaw,
         minimum,
+        adjustedBase,
+        difficultyAddon: Math.max(0, adjustedBase - longform.recommendedQuote),
+        rushAddon: Math.max(0, adjustedBase * (rush - 1)),
+        revisionAddon: Math.max(0, adjustedBase * rush * (revisionMultiplier - 1)),
         referenceSurcharge,
         revisionMultiplier,
         additionalRevisions
@@ -3859,15 +4076,17 @@
       const cameraCount = Math.min(3, Math.max(1, Math.round(numberValue("shortformCameras"))));
       const hourlyRate = cameraHourlyRates[cameraCount];
       const totalHours = count * hoursPerPiece;
-      const minimum = 30000 * count;
+      const minimum = pricingRules.shortformMinimum * count;
       const additionalRevisions = Math.max(0, Math.round(Number(revisionRounds) || 1) - 1);
-      const revisionMultiplier = 1 + (additionalRevisions * 0.25);
+      const revisionMultiplier = 1 + (additionalRevisions * pricingRules.revisionRate);
       const toolCost = totalHours * Math.max(0, costPerHour);
-      const recommendedLabor = totalHours * hourlyRate * Math.max(1, difficulty);
+      const baseLabor = totalHours * hourlyRate;
+      const recommendedLabor = baseLabor * Math.max(1, difficulty);
       const highLabor = totalHours * hourlyRate * Math.max(1.8, difficulty);
-      const recommended = roundToThousand(
-        Math.max(minimum, (recommendedLabor + toolCost) * Math.max(1, rush) * revisionMultiplier)
-      );
+      const adjustedBase = recommendedLabor + toolCost;
+      const rawBeforeMinimum = adjustedBase * Math.max(1, rush) * revisionMultiplier;
+      const recommendedRaw = Math.max(minimum, rawBeforeMinimum);
+      const recommended = roundToThousand(recommendedRaw);
       const high = roundToThousand(
         Math.max(recommended, (highLabor + toolCost) * Math.max(1, rush) * revisionMultiplier)
       );
@@ -3878,6 +4097,12 @@
         cameraCount,
         hourlyRate,
         totalHours,
+        baseLabor,
+        recommendedLabor,
+        toolCost,
+        adjustedBase,
+        rawBeforeMinimum,
+        recommendedRaw,
         minimum,
         recommended,
         high,
@@ -3893,7 +4118,7 @@
       document.getElementById("shortformRecommendedNote").textContent =
         `${quote.cameraCount}캠 · 편당 ${quote.hoursPerPiece}시간 · ${quote.count}편`;
       document.getElementById("shortformQuoteNote").textContent =
-        `최종 ${quote.seconds}초 × ${quote.count}편입니다. 편당 최소 30,000원을 보장하고, 실제 작업시간·카메라·난이도·납기·수정 횟수 중 높은 공수를 반영합니다.`;
+        `최종 ${quote.seconds}초 × ${quote.count}편입니다. 편당 최소 ${formatKrw(pricingRules.shortformMinimum)}을 보장하고, 실제 작업시간·카메라·난이도·납기·수정 횟수 중 높은 공수를 반영합니다.`;
       return quote;
     }
 
@@ -3935,33 +4160,17 @@
       const rawCameraCount = Math.round(Number(analysis?.estimatedCameraCount) || 0);
       const cameraCount = rawCameraCount >= 1 && rawCameraCount <= 3 ? rawCameraCount : null;
       const cameraConfidence = Math.min(1, Math.max(0, Number(analysis?.cameraConfidence) || 0));
-      const confidence = Math.min(1, Math.max(0, Number(analysis?.confidence) || 0));
-      const difficultyValue = Number(analysis?.difficultyValue) || null;
-      const workFactors = analysis?.workFactors || {};
-      const hasTaskSuggestion = Object.values(workFactors).some((level) => level === "high");
-      const hasUsableEstimate =
-        confidence >= 0.45 ||
-        Boolean(difficultyValue) ||
-        contentType !== "unknown" ||
-        Boolean(cameraCount && cameraConfidence >= 0.6) ||
-        hasTaskSuggestion;
       const currentMode = document.getElementById("quoteMode").value;
       const currentCamera = contentType === "shortform"
         ? Number(document.getElementById("shortformCameras").value)
         : Number(document.getElementById("longformCameras").value);
-      if (!hasUsableEstimate) {
-        pendingReferenceSuggestion = null;
-        renderReferenceSuggestionPanel();
-        return;
-      }
       pendingReferenceSuggestion = {
         contentType,
         quoteMode: contentType === "shortform" ? "shortform" : contentType === "longform" ? "longform" : currentMode,
         cameraCount: cameraConfidence >= 0.6 ? cameraCount : null,
         cameraConfidence,
-        difficultyValue,
-        workFactors,
-        isProvisional: Boolean(analysis?.needsFrameEvidence || confidence < 0.45),
+        difficultyValue: Number(analysis?.difficultyValue) || null,
+        workFactors: analysis?.workFactors || {},
         currentMode,
         currentCamera,
         currentDifficulty: Number(document.getElementById("difficulty").value)
@@ -3973,22 +4182,17 @@
       const panel = document.getElementById("referenceApplyPanel");
       if (!pendingReferenceSuggestion) {
         panel.hidden = true;
-        panel.classList.remove("is-provisional");
         return;
       }
       const suggestion = pendingReferenceSuggestion;
       panel.hidden = false;
-      panel.classList.toggle("is-provisional", Boolean(suggestion.isProvisional));
-      document.getElementById("referenceApplySummary").textContent = suggestion.isProvisional
-        ? "화면 근거가 부족한 보수 추정입니다. 난이도와 작업 항목은 초안으로 쓰되, 캠 수는 근거가 충분할 때만 적용하세요."
-        : "현재값과 추천값을 비교한 뒤 필요한 항목만 적용하세요.";
       document.getElementById("referenceModeChange").textContent =
         `${suggestion.currentMode === "shortform" ? "숏폼" : "롱폼"} → ${referenceContentTypeLabel(suggestion.contentType)}`;
       document.getElementById("referenceCameraChange").textContent = suggestion.cameraCount
         ? `${suggestion.currentCamera}캠 → ${suggestion.cameraCount}캠 · 신뢰 ${Math.round(suggestion.cameraConfidence * 100)}%`
         : `${suggestion.currentCamera}캠 유지 · 추정 불충분`;
       document.getElementById("referenceDifficultyChange").textContent = suggestion.difficultyValue
-        ? `${suggestion.currentDifficulty}배 → ${suggestion.difficultyValue}배${suggestion.isProvisional ? " · 보수 추정" : ""}`
+        ? `${suggestion.currentDifficulty}배 → ${suggestion.difficultyValue}배`
         : `${suggestion.currentDifficulty}배 유지`;
       document.getElementById("applyReferenceCamera").checked = Boolean(suggestion.cameraCount);
       document.getElementById("applyReferenceCamera").disabled = !suggestion.cameraCount;
@@ -4061,54 +4265,6 @@
       if (!host.endsWith("youtube.com")) return "";
       if (url.pathname === "/watch") return url.searchParams.get("v") || "";
       return ["shorts", "embed", "live"].includes(parts[0]) ? parts[1] || "" : "";
-    }
-
-    function youtubeThumbnailResearchUrls(url) {
-      const videoId = extractYouTubeVideoId(url);
-      if (!videoId) return [];
-      return [
-        "maxresdefault.jpg",
-        "sddefault.jpg",
-        "hqdefault.jpg",
-        "0.jpg",
-        "1.jpg",
-        "2.jpg",
-        "3.jpg"
-      ].map((file) => `https://i.ytimg.com/vi/${videoId}/${file}`);
-    }
-
-    function buildReferenceResearchInstructions(state) {
-      const url = normalizeReferenceUrl(state?.url);
-      if (!url) return [];
-      const videoId = extractYouTubeVideoId(url);
-      const title = String(state.title || state.sourceLabel || "").trim();
-      const thumbnailUrls = youtubeThumbnailResearchUrls(url);
-      const searchQueries = [
-        videoId ? `"${videoId}"` : "",
-        title && videoId ? `"${title}" "${videoId}"` : "",
-        title ? `"${title}" "YouTube"` : "",
-        title ? `"${title}" "자막"` : "",
-        title ? `"${title}" "리뷰"` : ""
-      ].filter(Boolean);
-      const lines = [
-        "조사 우선순위:",
-        "1. 먼저 레퍼런스 링크를 열고 재생/스크럽이 가능하면 시작부·중반부·후반부를 확인합니다.",
-        "2. 영상 재생이 막히면 실패로 끝내지 말고 영상 ID 기반 공개 썸네일/대표 이미지 URL을 열어 화면 요소를 확인합니다."
-      ];
-      if (videoId) lines.push(`YouTube videoId: ${videoId}`);
-      if (thumbnailUrls.length) {
-        lines.push("공개 썸네일/대표 이미지 후보:");
-        thumbnailUrls.forEach((thumbnailUrl) => lines.push(`- ${thumbnailUrl}`));
-      }
-      lines.push(
-        "3. 썸네일만으로 부족하면 공개 웹 검색으로 제목, 설명, 태그, 자막/스크립트, 기사/블로그/커뮤니티/GitHub/Gist 언급, 동일 영상 임베드 페이지를 찾습니다.",
-        "4. YouTube oEmbed, 공개 YouTube metadata viewer, transcript extractor, thumbnail downloader처럼 로그인 없이 열리는 공개 도구를 사용할 수 있으면 함께 확인합니다."
-      );
-      if (searchQueries.length) {
-        lines.push("추천 검색어:");
-        searchQueries.forEach((query) => lines.push(`- ${query}`));
-      }
-      return lines;
     }
 
     function referencePlatform(url) {
@@ -4395,30 +4551,9 @@
       });
     }
 
-    function normalizeEvidenceArray(value, maxItems = 4) {
-      if (!Array.isArray(value)) return [];
-      return value
-        .filter((item) => typeof item === "string" && item.trim())
-        .map((item) => item.trim())
-        .slice(0, maxItems);
-    }
-
-    function normalizeVisualEvidence(value) {
-      const source = value && typeof value === "object" ? value : {};
-      return Object.fromEntries(Object.keys(referenceEvidenceLabels).map((key) => [
-        key,
-        normalizeEvidenceArray(source[key])
-      ]));
-    }
-
-    function normalizeBoolean(value) {
-      return value === true || String(value).toLowerCase() === "true";
-    }
-
     function normalizeAiFrameAnalysis(value) {
       if (!value || typeof value !== "object") return null;
       const difficultyMap = {
-        unknown: { label: "판단 보류", difficultyValue: null, surchargePerMinute: 0 },
         basic: { label: "기본 난도", difficultyValue: 1.25, surchargePerMinute: 0 },
         medium: { label: "중간 난도", difficultyValue: 1.5, surchargePerMinute: 5000 },
         high: { label: "고난도", difficultyValue: 1.8, surchargePerMinute: 10000 },
@@ -4440,7 +4575,7 @@
         const level = String(rawFactors[key] || "unknown").toLowerCase();
         return [key, ["low", "medium", "high", "unknown"].includes(level) ? level : "unknown"];
       }));
-      const normalized = {
+      return {
         ...level,
         summary: value.summary.trim(),
         editingSignals: Array.isArray(value.editingSignals)
@@ -4452,43 +4587,8 @@
         cameraConfidence: Math.min(1, Math.max(0, Number(value.cameraConfidence) || 0)),
         cameraReason: typeof value.cameraReason === "string" ? value.cameraReason.trim() : "",
         editingPace,
-        workFactors,
-        visualEvidence: normalizeVisualEvidence(value.visualEvidence),
-        needsFrameEvidence: normalizeBoolean(value.needsFrameEvidence)
+        workFactors
       };
-      const confidence = normalized.confidence;
-      const signalText = [
-        normalized.summary,
-        normalized.cameraReason,
-        ...normalized.editingSignals
-      ].join(" ");
-      const hasAccessFailureText = /재생.*불가|확인.*불가|프레임.*확인|접근.*불가|화면.*증거|판정.*불가/i.test(signalText);
-      const allFactorsUnknown = Object.values(normalized.workFactors).every((factor) => factor === "unknown");
-      const inferredNeedsFrameEvidence =
-        normalized.needsFrameEvidence ||
-        (
-          confidence <= 0.25 &&
-          (!normalized.estimatedCameraCount || allFactorsUnknown || hasAccessFailureText)
-        );
-      if (inferredNeedsFrameEvidence) {
-        if (!normalized.difficultyValue) {
-          normalized.label = "중간 난도(보수 추정)";
-          normalized.difficultyValue = 1.5;
-          normalized.surchargePerMinute = 5000;
-        } else if (!normalized.label.includes("추정")) {
-          normalized.label = `${normalized.label}(보수 추정)`;
-        }
-        normalized.needsFrameEvidence = true;
-        normalized.isProvisional = true;
-        if (!normalized.visualEvidence.missing.length) {
-          normalized.visualEvidence.missing = [
-            "영상 화면을 직접 충분히 확인하지 못했습니다. 공개 썸네일 URL, 메타데이터 검색, 초반/중반/후반 스크린샷으로 캠 수, B-roll, 그래픽 근거를 보강하세요."
-          ];
-        }
-      } else {
-        normalized.isProvisional = confidence < 0.45;
-      }
-      return normalized;
     }
 
     function buildChatgptAnalysisPrompt(state) {
@@ -4498,34 +4598,23 @@
       if (!hasFrames && !hasLink) return "";
       const longform = getLongformQuoteValues();
       const metrics = state.metrics || {};
-      const researchInstructions = hasLink ? buildReferenceResearchInstructions(state) : [];
       return [
         hasFrames
-          ? "아래에 함께 올린 이미지는 영상 레퍼런스에서 시간순으로 추출한 대표 프레임 시트입니다."
-          : "아래 레퍼런스 링크를 직접 열고 재생/스크럽해서 화면 구성과 편집 스타일을 확인해주세요.",
+          ? "아래에 함께 올린 이미지는 영상 레퍼런스에서 시간순으로 추출한 대표 프레임입니다."
+          : "아래 레퍼런스 링크를 열어 영상의 화면 구성과 편집 스타일을 확인해주세요.",
         "당신은 한국 영상 편집 외주 견적을 산정하는 시니어 포스트프로덕션 디렉터입니다.",
-        "목표는 단순 감상이 아니라 견적에 바로 쓸 수 있는 작업량 판단표를 만드는 것입니다.",
         hasFrames
-          ? "첨부 프레임을 우선 근거로 삼고, 화면에 실제로 보이는 요소만 판단해주세요."
-          : "링크를 볼 수 있다면 시작부, 중반부, 후반부를 최소 6장면 이상 훑어서 판단해주세요.",
+          ? "프레임을 직접 비교해 화면에 실제로 보이는 편집 난도를 판단해주세요."
+          : "링크에서 실제로 확인되는 내용만 근거로 편집 난도를 판단해주세요.",
         "",
-        "반드시 확인할 요소:",
-        "1. 카메라 수: 같은 인물/장면이 서로 다른 실제 촬영 각도나 구도로 반복 등장할 때만 2캠/3캠으로 봅니다. 크롭, 줌, 컷어웨이, B-roll, 자료 화면은 별도 카메라로 세지 마세요.",
-        "2. B-roll: 메인 인터뷰/토크 외에 현장 스케치, 제품 컷, 보조 장면, 화면 설명용 영상이 들어가는지 봅니다.",
-        "3. 자료 삽입: 사진, 기사, 캡처, 도표, 화면 녹화, 스톡 이미지/영상, 브랜드 자료가 들어가는지 봅니다.",
-        "4. 그래픽/모션: 도형, 인포그래픽, 키네틱 타이포, 추적 자막, 마스킹, 합성, 화면 분할, 애니메이션을 봅니다.",
-        "5. 자막/타이포: 전체 말자막인지, 포인트 자막인지, 색/박스/강조/이모지/폰트 디자인이 많은지 봅니다.",
-        "6. 컷 리듬: 10초 안의 컷 수, 점프컷 빈도, 줌/리프레임, 전환 효과가 많은지 봅니다.",
-        "7. 색/룩: 단순 보정인지, 광고형 룩/강한 색감/복잡한 매칭이 필요한지 봅니다.",
-        "",
-        ...(researchInstructions.length ? [...researchInstructions, ""] : []),
-        "재생 실패/정보 부족 처리:",
-        "- 영상 플레이어만 재생 불가하다고 곧장 실패하지 말고 위 조사 우선순위를 끝까지 시도하세요.",
-        "- 직접 재생은 못 했지만 제목, 공개 썸네일, 검색 결과, 메타데이터, 자막/스크립트 중 하나라도 확인했으면 견적 초안이 나오도록 difficulty는 basic/medium/high 중 하나를 반드시 고릅니다.",
-        "- 이 경우 confidence는 0.25~0.45 사이로 낮추고 needsFrameEvidence는 true로 두며, visualEvidence.missing에 직접 확인하지 못한 항목을 적습니다.",
-        "- workFactors는 광고/리뷰/제품/숏폼/썸네일/검색 단서에 기반해 가능한 한 low/medium/high로 채우고, 정말 단서가 없는 항목만 unknown으로 둡니다.",
-        "- difficulty unknown은 링크, 제목, 공개 썸네일, 검색, 메타데이터까지 모두 실패해서 견적 초안도 만들 수 없는 최후의 경우에만 씁니다.",
-        "- 확정한 값과 추정한 값을 editingSignals와 visualEvidence.missing에서 구분해 표시하세요.",
+        "판단 요소:",
+        "- 모션그래픽, 합성, 마스킹, 화면 분할",
+        "- 자막·타이포그래피 밀도와 디자인 난도",
+        "- 스톡 자료 및 그래픽 자료 사용량",
+        "- 색보정 난도, 전환 빈도, 광고 연출, AI/VFX 흔적",
+        "- 세로형 숏폼인지 가로형 롱폼인지",
+        "- 서로 다른 촬영 각도와 구도를 비교한 원본 카메라 수 추정",
+        "- 반복 제작 부담",
         "",
         "보이지 않는 오디오 상태, 원본 촬영 길이, 작업자의 실력은 추측하지 마세요.",
         hasLink ? `레퍼런스 링크: ${state.url}` : "",
@@ -4538,11 +4627,11 @@
             `화면 디테일 ${Math.round((metrics.detailDensity || 0) * 100)}%, ` +
             `명암 대비 ${Math.round(metrics.contrast || 0)}/100, ` +
             `색 밀도 ${Math.round((metrics.saturation || 0) * 100)}%`
-          : "링크만으로는 부족하면 사용자가 프레임 시트나 6장 이상 스크린샷을 첨부해야 한다고 표시하세요.",
+          : "영상 재생이나 화면 확인이 불가능하면 내용을 추측하지 말고 confidence를 0.3 이하로 낮추세요.",
         "",
         "설명 문장이나 마크다운 없이 아래 JSON 형식만 반환하세요.",
         "{",
-        '  "difficulty": "unknown 또는 basic 또는 medium 또는 high",',
+        '  "difficulty": "basic 또는 medium 또는 high",',
         '  "summary": "한국어로 작성한 판단 요약",',
         '  "editingSignals": ["한국어 편집 신호", "최대 6개"],',
         '  "confidence": 0부터 1 사이 숫자,',
@@ -4551,16 +4640,6 @@
         '  "cameraConfidence": 0부터 1 사이 숫자,',
         '  "cameraReason": "서로 다른 촬영 각도 근거를 한국어로 설명",',
         '  "editingPace": "slow 또는 medium 또는 fast 또는 unknown",',
-        '  "needsFrameEvidence": true 또는 false,',
-        '  "visualEvidence": {',
-        '    "camera": ["카메라 수 판단에 쓴 장면 근거"],',
-        '    "broll": ["B-roll이나 보조 영상 근거"],',
-        '    "graphics": ["그래픽, 자료 화면, 삽입 소스 근거"],',
-        '    "subtitles": ["자막/타이포그래피 근거"],',
-        '    "motion": ["모션그래픽, 마스킹, 트래킹, 화면분할 근거"],',
-        '    "pacing": ["컷 리듬, 줌, 전환 근거"],',
-        '    "missing": ["확인하지 못한 정보 또는 추가로 필요한 프레임"]',
-        '  },',
         '  "workFactors": {',
         '    "cutDensity": "low 또는 medium 또는 high 또는 unknown",',
         '    "subtitleDensity": "low 또는 medium 또는 high 또는 unknown",',
@@ -4840,12 +4919,9 @@
         calculate();
         renderReferenceAnalysis(referenceAnalysisState);
         saveState();
-        status.textContent = analysis.needsFrameEvidence
-          ? "보수 추정으로 불러왔습니다. 적용 전 확인하고, 가능하면 공개 썸네일이나 스크린샷으로 근거를 보강하세요."
-          : "ChatGPT 분석 결과를 확인했습니다. 적용할 항목을 선택해주세요.";
-        document.getElementById("copyState").textContent = analysis.needsFrameEvidence
-          ? "ChatGPT 답변을 보수 추정으로 불러왔습니다. 현재 견적값은 아직 바뀌지 않았고, 적용 버튼으로 선택 반영할 수 있습니다."
-          : "ChatGPT 레퍼런스 분석 결과를 불러왔습니다. 현재 견적값은 아직 바뀌지 않았습니다.";
+        status.textContent = "ChatGPT 분석 결과를 확인했습니다. 적용할 항목을 선택해주세요.";
+        document.getElementById("copyState").textContent =
+          "ChatGPT 레퍼런스 분석 결과를 불러왔습니다. 현재 견적값은 아직 바뀌지 않았습니다.";
       } catch (error) {
         status.textContent = error.message || "ChatGPT 답변을 반영하지 못했습니다.";
       }
@@ -4961,11 +5037,12 @@
 
     function referenceAnalysisPresentation(state) {
       if (!state) return { label: "분석 전", className: "low" };
-      if (state.needsFrameEvidence || state.isProvisional) return { label: "보수 추정 · 확인 필요", className: "low" };
-      if (state.analysisMode === "chatgpt-subscription") return { label: "ChatGPT 수동 AI", className: "chatgpt" };
-      if (state.analysisMode === "ai") return { label: "대표 장면 AI", className: "ai" };
-      if (state.analysisMode === "local") return { label: "화면 복잡도 분석", className: "local" };
-      return { label: "제목 기반 추정 · 낮은 신뢰", className: "low" };
+      const confidence = Math.round((Number(state.confidence) || 0) * 100);
+      const suffix = confidence ? ` · 신뢰 ${confidence}%` : "";
+      if (state.analysisMode === "chatgpt-subscription") return { label: `ChatGPT 수동 AI${suffix}`, className: "chatgpt" };
+      if (state.analysisMode === "ai") return { label: `대표 장면 AI${suffix}`, className: "ai" };
+      if (state.analysisMode === "local") return { label: `화면 복잡도 분석${suffix || " · 신뢰 60%"}`, className: "local" };
+      return { label: `제목 기반 추정 · 신뢰 ${confidence || 30}%`, className: "low" };
     }
 
     function createReferenceBaseline(state) {
@@ -4994,49 +5071,6 @@
       state.estimatedQuote = state.baseline.quote;
     }
 
-    function renderReferenceEvidence(state) {
-      const container = document.getElementById("referenceEvidenceList");
-      if (!container) return;
-      if (!state) {
-        container.innerHTML = "";
-        return;
-      }
-
-      const evidence = state.visualEvidence || {};
-      const items = Object.entries(referenceEvidenceLabels)
-        .map(([key, label]) => ({
-          key,
-          label,
-          values: normalizeEvidenceArray(evidence[key], key === "missing" ? 5 : 3)
-        }))
-        .filter((item) => item.values.length);
-
-      if (!items.length && Array.isArray(state.editingSignals) && state.editingSignals.length) {
-        items.push({
-          key: "signals",
-          label: "확인된 편집 신호",
-          values: state.editingSignals.slice(0, 6)
-        });
-      }
-
-      if (state.needsFrameEvidence && !items.some((item) => item.key === "missing")) {
-        items.unshift({
-          key: "missing",
-          label: "추가 확인 필요",
-          values: ["영상 화면을 직접 확인하지 못했습니다. 대표 프레임 시트나 6장 이상 스크린샷을 첨부해야 캠 수와 B-roll을 견적 근거로 쓸 수 있습니다."]
-        });
-      }
-
-      container.innerHTML = items
-        .map((item) => (
-          `<div class="reference-evidence-item ${item.key === "missing" ? "warning" : ""}">` +
-          `<strong>${escapeHtml(item.label)}</strong>` +
-          `<p>${item.values.map(escapeHtml).join(" · ")}</p>` +
-          "</div>"
-        ))
-        .join("");
-    }
-
     function renderReferenceAnalysis(state) {
       const result = document.getElementById("referenceResult");
       const thumbnail = document.getElementById("referenceThumbnail");
@@ -5047,7 +5081,6 @@
         thumbnail.hidden = true;
         thumbnail.removeAttribute("src");
         document.getElementById("referenceFactorList").innerHTML = "";
-        renderReferenceEvidence(null);
         badge.textContent = "분석 전";
         badge.className = "analysis-badge low";
         if (!document.getElementById("referenceUrl").value.trim()) status.textContent = "";
@@ -5062,13 +5095,11 @@
       badge.textContent = presentation.label;
       badge.className = `analysis-badge ${presentation.className}`;
       status.className = "reference-status ok";
-      status.textContent = state.needsFrameEvidence
-        ? "화면 근거가 부족한 보수 추정입니다. 적용 전 확인하고, 정확한 캠 수·B-roll·그래픽은 썸네일이나 스크린샷으로 보강하세요."
-        : state.analysisMode === "local"
-          ? "영상 프레임의 화면 변화와 디테일만 확인했습니다. 실제 편집 난도와 캠 수는 직접 확인하세요."
-          : state.analysisMode === "metadata"
-            ? "제목과 공개 정보만 사용한 참고용 추정입니다."
-            : "분석 결과를 확인하고 아래 제안 중 필요한 항목만 적용하세요.";
+      status.textContent = state.analysisMode === "local"
+        ? "영상 프레임의 화면 변화와 디테일만 확인했습니다. 실제 편집 난도와 캠 수는 직접 확인하세요."
+        : state.analysisMode === "metadata"
+          ? "제목과 공개 정보만 사용한 참고용 추정입니다."
+          : "분석 결과를 확인하고 아래 제안 중 필요한 항목만 적용하세요.";
 
       result.hidden = false;
       thumbnail.hidden = !state.thumbnail;
@@ -5093,14 +5124,10 @@
       document.getElementById("referenceQuote").textContent = formatKrw(state.baseline?.quote || state.estimatedQuote);
       const factorList = document.getElementById("referenceFactorList");
       const factorLevelLabel = { low: "낮음", medium: "보통", high: "높음", unknown: "확인 필요" };
-      const factorChips = Object.entries(state.workFactors || {})
+      factorList.innerHTML = Object.entries(state.workFactors || {})
         .filter(([, level]) => level !== "unknown")
         .map(([key, level]) => `<span class="chip">${referenceFactorLabels[key]} ${factorLevelLabel[level]}</span>`)
         .join("");
-      factorList.innerHTML = factorChips || (state.needsFrameEvidence
-        ? '<span class="chip">세부 항목 확인 필요</span>'
-        : "");
-      renderReferenceEvidence(state);
       renderFrameAnalysisDetails(state);
     }
 
@@ -5183,6 +5210,7 @@
           thumbnail: frames[0]?.image || "",
           frames,
           analysisMode: "local",
+          confidence: 0.6,
           aiDetails: null,
           localReason: localAnalysis.reason,
           contentType,
@@ -5358,6 +5386,7 @@
           title: metadata.title,
           thumbnail: metadata.thumbnail,
           contentType,
+          confidence: 0.3,
           estimatedCameraCount: null,
           cameraConfidence: 0,
           cameraReason: "제목과 링크만으로는 카메라 수를 추정할 수 없습니다.",
@@ -5471,11 +5500,35 @@
       const iso = text.match(/(?:마감|납기|1차본|회신)[^\d]{0,12}(20\d{2})[./-](\d{1,2})[./-](\d{1,2})/i);
       if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
       const korean = text.match(/(?:마감|납기|1차본|회신)[^\d]{0,12}(?:(20\d{2})년\s*)?(\d{1,2})월\s*(\d{1,2})일/i);
-      if (!korean) return null;
-      const year = korean[1] ? Number(korean[1]) : now.getFullYear();
-      const result = new Date(year, Number(korean[2]) - 1, Number(korean[3]));
-      if (!korean[1] && result < addDays(now, -1)) result.setFullYear(year + 1);
-      return result;
+      if (korean) {
+        const year = korean[1] ? Number(korean[1]) : now.getFullYear();
+        const result = new Date(year, Number(korean[2]) - 1, Number(korean[3]));
+        if (!korean[1] && result < addDays(now, -1)) result.setFullYear(year + 1);
+        return result;
+      }
+
+      if (/모레/.test(text)) return addDays(now, 2);
+      if (/내일/.test(text)) return addDays(now, 1);
+      const withinDays = text.match(/(\d+)\s*일\s*(?:내|안)/);
+      if (withinDays) return addDays(now, Number(withinDays[1]));
+      if (/월말/.test(text)) return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const weekdayMatch = text.match(/(이번\s*주|다음\s*주)?\s*(월|화|수|목|금|토|일)요일(?:까지)?/);
+      if (weekdayMatch) {
+        const weekdayMap = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 };
+        const target = weekdayMap[weekdayMatch[2]];
+        const mondayOffset = (now.getDay() + 6) % 7;
+        const weekStart = addDays(new Date(now.getFullYear(), now.getMonth(), now.getDate()), -mondayOffset);
+        const weekShift = /다음\s*주/.test(weekdayMatch[1] || "") ? 7 : 0;
+        let result = addDays(weekStart, weekShift + ((target + 6) % 7));
+        if (!weekdayMatch[1] && result < now) result = addDays(result, 7);
+        return result;
+      }
+      if (/다음\s*주/.test(text)) {
+        const mondayOffset = (now.getDay() + 6) % 7;
+        return addDays(now, 7 - mondayOffset);
+      }
+      return null;
     }
 
     function saveQuickQuoteText() {
@@ -5500,13 +5553,14 @@
 
     function renderQuickQuoteResult(applied, warnings) {
       const chips = document.getElementById("quickQuoteChips");
-      chips.innerHTML = "";
-      applied.forEach((label) => {
-        const chip = document.createElement("span");
-        chip.className = "chip";
-        chip.textContent = label;
-        chips.appendChild(chip);
-      });
+      lastParsedQuoteLabels = [...applied];
+      const mode = document.getElementById("quoteMode").value;
+      const currentLabels = mode === "shortform"
+        ? [`숏폼 ${numberValue("shortformFinalSeconds")}초`, `${numberValue("shortformCount")}편`, `${numberValue("shortformCameras")}캠`, `수정 ${numberValue("revisionRounds")}회`]
+        : [`최종본 ${numberValue("longformFinalMinutes")}분`, `${numberValue("longformCameras")}캠`, longformScopeSettings[document.getElementById("longformScope").value].label, `수정 ${numberValue("revisionRounds")}회`];
+      const chipRow = (label, values) => `<div class="chip-group"><strong class="chip-group-label">${label}</strong>${values.map((value) => `<span class="chip">${escapeHtml(value)}</span>`).join("")}</div>`;
+      chips.classList.add("chip-groups");
+      chips.innerHTML = chipRow("문의에서 읽음", applied.length ? applied : ["확인 필요"]) + chipRow("현재 설정값", currentLabels);
 
       const title = document.getElementById("quickQuoteResultTitle");
       title.textContent = applied.length
@@ -5536,7 +5590,10 @@
         if (label) applied.push(label);
       };
 
-      const isShortform = /(?:숏폼|쇼츠|shorts?|릴스|reels?|틱톡|tiktok|세로형)/i.test(text);
+      const hasShortform = /(?:숏폼|쇼츠|shorts?|릴스|reels?|틱톡|tiktok|세로형)/i.test(text);
+      const hasLongform = /(?:롱폼|최종본[^\n]{0,12}\d+(?:\.\d+)?\s*분|원본[^\n]{0,45}(?:최종|완성))/i.test(text);
+      const derivedShortform = hasShortform && hasLongform;
+      const isShortform = hasShortform && !derivedShortform;
       if (isShortform) {
         setValue("quoteMode", "shortform", "숏폼 편당 기준");
         const finalSeconds = extractFinalSeconds(text);
@@ -5552,6 +5609,18 @@
         const finalMinutes = extractFinalMinutes(text);
         if (finalMinutes > 0) setValue("longformFinalMinutes", finalMinutes, `최종본 ${finalMinutes}분`);
         else warnings.push("최종본 길이 미인식: 현재값 유지");
+        if (derivedShortform) {
+          const shortCount = firstCapturedNumber(text, [
+            /(?:파생\s*)?(?:숏폼|쇼츠|릴스|shorts?)[^\d\n]{0,12}(\d+)\s*(?:편|개)/i,
+            /(\d+)\s*(?:편|개)[^\n]{0,12}(?:숏폼|쇼츠|릴스|shorts?)/i
+          ]);
+          const shortSeconds = extractFinalSeconds(text);
+          if (shortCount > 0) setValue("shortformCount", shortCount, `파생 숏폼 ${shortCount}편`);
+          else warnings.push("파생 숏폼 수량 확인 필요");
+          if (shortSeconds > 0) setValue("shortformFinalSeconds", shortSeconds, `파생 숏폼 각 ${shortSeconds}초`);
+          const derivedInput = document.querySelector('[data-task="derivedShorts"]');
+          if (derivedInput) derivedInput.checked = true;
+        }
       }
 
       const cameras = extractCameraCount(text);
@@ -5576,9 +5645,13 @@
       if (scope) setValue("longformScope", scope, longformScopeSettings[scope].label);
       else warnings.push("편집 범위 미인식: 현재값 유지");
 
-      const revisionMatch = text.match(/수정(?:\s*(?:횟수|포함))?\s*(\d+)\s*회/i);
-      const revisions = revisionMatch ? Math.min(10, Math.max(1, Number(revisionMatch[1]))) : 1;
-      setValue("revisionRounds", revisions, `수정 ${revisions}회`);
+      const revisions = firstCapturedNumber(text, [
+        /수정(?:은|을|이|도)?(?:\s*(?:횟수|포함))?[^\d\n]{0,8}(\d+)\s*회/i,
+        /(\d+)\s*차(?:까지|수정)/i,
+        /수정[^\n]{0,8}(\d+)\s*차/i
+      ]);
+      if (revisions > 0) setValue("revisionRounds", Math.min(10, Math.max(1, revisions)), `수정 ${revisions}회`);
+      else warnings.push("수정 횟수 확인 필요: 현재값 유지");
 
       const expectedHours = firstCapturedNumber(text, [
         /(?:예상\s*)?(?:작업|편집)(?:\s*(?:시간|소요시간))?[^\d\n]{0,8}(\d+(?:\.\d+)?)\s*시간/i,
@@ -5615,14 +5688,6 @@
         setValue("difficulty", 1.25, "기본 난이도 가정");
       }
 
-      if (/(?:asap|급행|긴급|당일)/i.test(text)) {
-        setValue("rush", 1.2, "빠듯한 납기");
-      } else if (/(?:48\s*시간|이틀\s*(?:내|안))/i.test(text)) {
-        setValue("rush", 1.5, "48시간 이내");
-      } else {
-        setValue("rush", 1, "일반 납기");
-      }
-
       if (/평일\s*(?:과|및|\+)?\s*주말|주말\s*(?:과|및|\+)?\s*평일|매일/i.test(text)) {
         setValue("workdayMode", "all", "평일+주말");
       } else if (/주말\s*만/i.test(text)) {
@@ -5649,6 +5714,15 @@
       if (calculatedDeadline) {
         setValue("startDate", dateInputValue(now));
         setValue("deadline", dateInputValue(calculatedDeadline), `마감 ${dateInputValue(calculatedDeadline)}`);
+      }
+
+      const daysUntilDeadline = calculatedDeadline ? diffDays(now, calculatedDeadline) : Number.POSITIVE_INFINITY;
+      if (/(?:48\s*시간|이틀\s*(?:내|안))/i.test(text) || daysUntilDeadline <= 2) {
+        setValue("rush", 1.5, "48시간 이내");
+      } else if (/(?:asap|급행|긴급|당일)/i.test(text) || daysUntilDeadline <= 4) {
+        setValue("rush", 1.2, "빠듯한 납기");
+      } else {
+        setValue("rush", 1, "일반 납기");
       }
 
       const hourlyMatch = text.match(/(?:희망\s*)?시급[^\d]{0,8}(\d+(?:\.\d+)?)\s*(만원|원)/i);
@@ -5679,6 +5753,7 @@
       calculate();
       saveQuickQuoteText();
       renderQuickQuoteResult(applied, warnings);
+      setQuoteProgress(4);
       scrollToCalculationResults("quickQuotePanel");
 
       if (referenceMatch && normalizeReferenceUrl(referenceMatch[0])) {
@@ -5859,7 +5934,10 @@
             id: item.id || `schedule-${Date.now()}`,
             name: item.name || "이름 없는 작업",
             type: item.type || "희망",
+            startDate: item.startDate || "",
             deadline: item.deadline || "",
+            sourceQuoteId: item.sourceQuoteId || "",
+            recommendedQuote: Number(item.recommendedQuote) || 0,
             remainingHours: Number(item.remainingHours) || 0,
             conditionDelay: Number(item.conditionDelay) || 0,
             dailyHours: Number(item.dailyHours) || 3,
@@ -5885,9 +5963,13 @@
 
     function renderAuthState() {
       const user = authSession?.user || null;
+      const headerAuth = document.getElementById("headerAuthButton");
       document.getElementById("signedOutAuth").hidden = Boolean(user);
       document.getElementById("signedInAuth").hidden = !user;
       document.getElementById("authUserEmail").textContent = user?.email || "";
+      headerAuth.textContent = user?.email ? `연결됨 · ${user.email}` : "로그인 필요";
+      headerAuth.classList.toggle("is-connected", Boolean(user));
+      headerAuth.setAttribute("aria-label", user ? `${user.email} 계정 및 동기화 관리` : "로그인 및 동기화 설정 열기");
       if (!user) {
         setAuthStatus("로그인하면 일정과 금액 정보가 PC·모바일에 자동 동기화됩니다.");
       }
@@ -5916,14 +5998,17 @@
     }
 
     function parseCloudNotes(value) {
-      if (!value) return { text: "", conditionDelay: 0, dailyHours: 3 };
+      if (!value) return { text: "", conditionDelay: 0, dailyHours: 3, startDate: "", sourceQuoteId: "", recommendedQuote: 0 };
       try {
         const parsed = JSON.parse(value);
         if (parsed && typeof parsed === "object") {
           return {
             text: parsed.text || "",
             conditionDelay: Number(parsed.conditionDelay) || 0,
-            dailyHours: Number(parsed.dailyHours) || 3
+            dailyHours: Number(parsed.dailyHours) || 3,
+            startDate: parsed.startDate || "",
+            sourceQuoteId: parsed.sourceQuoteId || "",
+            recommendedQuote: Number(parsed.recommendedQuote) || 0
           };
         }
       } catch {
@@ -5938,7 +6023,10 @@
         id: row.id,
         name: row.name || "이름 없는 작업",
         type: row.project_type || "희망",
+        startDate: notes.startDate,
         deadline: row.deadline ? String(row.deadline).slice(0, 10) : "",
+        sourceQuoteId: notes.sourceQuoteId,
+        recommendedQuote: notes.recommendedQuote,
         remainingHours: Number(row.remaining_hours) || 0,
         conditionDelay: notes.conditionDelay,
         dailyHours: notes.dailyHours,
@@ -5959,7 +6047,10 @@
         notes: JSON.stringify({
           text: item.notes || "",
           conditionDelay: Number(item.conditionDelay) || 0,
-          dailyHours: Number(item.dailyHours) || 3
+          dailyHours: Number(item.dailyHours) || 3,
+          startDate: item.startDate || "",
+          sourceQuoteId: item.sourceQuoteId || "",
+          recommendedQuote: Number(item.recommendedQuote) || 0
         }),
         updated_at: new Date().toISOString()
       };
@@ -6635,7 +6726,7 @@
             <div class="empty-state">${escapeHtml(item.notes || "남은 작업 메모 없음")}</div>
             <div class="schedule-actions">
               <button class="button" type="button" data-apply-schedule="${escapeHtml(item.id)}">계산에 적용</button>
-              <button class="button danger" type="button" data-delete-schedule="${escapeHtml(item.id)}">삭제</button>
+              <button class="button destructive" type="button" data-delete-schedule="${escapeHtml(item.id)}">삭제</button>
             </div>
           </article>
         `;
@@ -6645,7 +6736,11 @@
         button.addEventListener("click", () => applyScheduleToCalculator(button.dataset.applySchedule));
       });
       container.querySelectorAll("[data-delete-schedule]").forEach((button) => {
-        button.addEventListener("click", () => deleteSchedule(button.dataset.deleteSchedule));
+        button.addEventListener("click", () => requestConfirmedAction(
+          "이 일정을 삭제합니다. 삭제 후 10초 동안 되돌릴 수 있습니다.",
+          "일정 삭제",
+          () => runWithUndo("일정을 삭제했습니다.", () => deleteSchedule(button.dataset.deleteSchedule))
+        ));
       });
     }
 
@@ -6775,6 +6870,82 @@
         controlState[id] = document.getElementById(id).value;
       });
       return controlState;
+    }
+
+    function captureUndoSnapshot() {
+      return {
+        controls: currentControlState(),
+        tasks: Array.from(document.querySelectorAll("[data-task]"), (input) => [input.dataset.task, input.checked]),
+        materials: Array.from(document.querySelectorAll("[data-material]"), (input) => [input.dataset.material, input.checked]),
+        services: structuredClone(services),
+        schedules: structuredClone(schedules),
+        quoteMeta: structuredClone(quoteMetaState),
+        quickQuoteText: document.getElementById("quickQuoteText").value,
+        savedQuotes: localStorage.getItem(SAVED_QUOTES_STORAGE_KEY),
+        profit: localStorage.getItem(PROFIT_STORAGE_KEY),
+        reference: referenceAnalysisState ? structuredClone(referenceAnalysisState) : null
+      };
+    }
+
+    function restoreUndoSnapshot(snapshot) {
+      if (!snapshot) return;
+      controls.forEach((id) => {
+        if (snapshot.controls[id] !== undefined) document.getElementById(id).value = snapshot.controls[id];
+      });
+      new Map(snapshot.tasks).forEach((checked, key) => {
+        const input = document.querySelector(`[data-task="${key}"]`);
+        if (input) input.checked = checked;
+      });
+      new Map(snapshot.materials).forEach((checked, key) => {
+        const input = document.querySelector(`[data-material="${key}"]`);
+        if (input) input.checked = checked;
+      });
+      services = structuredClone(snapshot.services);
+      schedules = structuredClone(snapshot.schedules);
+      quoteMetaState = structuredClone(snapshot.quoteMeta);
+      referenceAnalysisState = snapshot.reference ? structuredClone(snapshot.reference) : null;
+      document.getElementById("quickQuoteText").value = snapshot.quickQuoteText || "";
+      if (snapshot.savedQuotes === null) localStorage.removeItem(SAVED_QUOTES_STORAGE_KEY);
+      else localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, snapshot.savedQuotes);
+      if (snapshot.profit === null) localStorage.removeItem(PROFIT_STORAGE_KEY);
+      else localStorage.setItem(PROFIT_STORAGE_KEY, snapshot.profit);
+      saveSchedules();
+      saveQuoteMeta();
+      saveState();
+      renderServices();
+      renderSchedules();
+      renderCalendar();
+      renderSavedQuotes();
+      renderReferenceAnalysis(referenceAnalysisState);
+      loadProfitState();
+      calculateProfit();
+      calculate();
+      document.getElementById("copyState").textContent = "이전 입력값으로 되돌렸습니다.";
+    }
+
+    function showUndo(message, snapshot) {
+      undoSnapshot = snapshot;
+      clearTimeout(undoTimer);
+      const bar = document.getElementById("undoBar");
+      document.getElementById("undoMessage").textContent = message;
+      bar.hidden = false;
+      undoTimer = setTimeout(() => {
+        bar.hidden = true;
+        undoSnapshot = null;
+      }, 10000);
+    }
+
+    function runWithUndo(message, action) {
+      const snapshot = captureUndoSnapshot();
+      action();
+      showUndo(message, snapshot);
+    }
+
+    function requestConfirmedAction(message, label, action) {
+      pendingConfirmedAction = { label, action };
+      document.getElementById("confirmActionMessage").textContent = message;
+      document.getElementById("confirmActionButton").textContent = label;
+      document.getElementById("confirmActionDialog").showModal();
     }
 
     async function exportBackup() {
@@ -6974,18 +7145,34 @@
       const todayKey = sameDateKey(new Date());
       const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
       const cells = dayNames.map((day) => `<div class="calendar-day-name">${day}</div>`);
+      const savedQuotePeriods = readSavedQuotes().filter((item) => item.startDate && item.deadline);
+      const hasCalendarData = schedules.some((item) => item.deadline) || savedQuotePeriods.length > 0;
+      document.getElementById("calendarEmptyState").hidden = hasCalendarData;
 
       for (let index = 0; index < 42; index += 1) {
         const date = addDays(start, index);
         const key = sameDateKey(date);
         const muted = date.getMonth() !== month ? " is-muted" : "";
         const today = key === todayKey ? " is-today" : "";
-        const items = sortedSchedules()
+        const scheduleItems = sortedSchedules()
           .filter((item) => item.deadline === key)
           .map((item) => {
             const status = scheduleStatus(item);
             return `<div class="calendar-item ${status.className}"><strong>${escapeHtml(item.name)}</strong><span>${status.text} · ${scheduleAdjustedHours(item).toFixed(1)}시간</span></div>`;
           }).join("");
+        const quoteItems = savedQuotePeriods.map((item) => {
+          const startKey = item.startDate;
+          const deadlineKey = item.deadline;
+          const reportKey = sameDateKey(addDays(parseDateInput(deadlineKey), -2));
+          const name = escapeHtml(item.projectName || "저장 견적");
+          if (key === reportKey) {
+            return `<div class="calendar-item quote-report"><strong>${name}</strong><span>2일 전 보고</span></div>`;
+          }
+          if (key < startKey || key > deadlineKey) return "";
+          const label = key === deadlineKey ? "마감" : "작업 기간";
+          return `<div class="calendar-item quote-period"><strong>${name}</strong><span>${label}</span></div>`;
+        }).join("");
+        const items = scheduleItems + quoteItems;
         const emptyClass = items ? "" : " no-items";
         cells.push(`<div class="calendar-cell${muted}${today}${emptyClass}"><div class="calendar-date">${date.getDate()}</div>${items}</div>`);
       }
@@ -7144,32 +7331,38 @@
         comparison.textContent = "레퍼런스 분석 전입니다. 현재 입력 조건만으로 계산했습니다.";
       }
 
-      const revisionAddon = data.revisionRounds > 1
-        ? roundToThousand(data.recommendedQuote * ((data.revisionRounds - 1) * 0.25) / Math.max(1, 1 + ((data.revisionRounds - 1) * 0.25)))
-        : 0;
-      const rushAddon = data.rush > 1 ? roundToThousand(data.recommendedQuote * (data.rush - 1) / data.rush) : 0;
-      const rows = [
-        ["기본 작업", data.quoteBasisLabel === "예상 작업시간" ? data.laborCost : data.currentLongform.recommendedQuote],
-        [`카메라 ${data.currentLongform.cameraCount}대`, data.currentLongform.recommendedQuote - (data.currentLongform.minutes * longformRates[1].recommended)],
-        ["프로그램 사용료 배분", data.toolAllocation],
-        ["선택한 세부 작업", data.taskAddons],
-        [`수정 ${data.revisionRounds}회`, revisionAddon],
-        ["급행 가산", rushAddon],
-        ["천원 단위 반올림", 0]
-      ];
-      document.getElementById("quoteBreakdown").innerHTML = rows.map(([label, value]) => `
-        <div class="breakdown-row"><span>${label}</span><strong>${value ? formatKrw(Math.max(0, value)) : "포함/없음"}</strong></div>
-      `).join("") + `<div class="breakdown-row"><span>정상 권장 견적</span><strong>${formatKrw(data.recommendedQuote)}</strong></div>`;
+      const rows = Array.isArray(data.breakdownRows)
+        ? data.breakdownRows.map((row) => ({ ...row, value: Math.round(Number(row.value) || 0) }))
+        : [];
+      const targetTotal = Math.round(Number(data.recommendedQuote) || 0);
+      const initialTotal = rows.reduce((sum, row) => sum + row.value, 0);
+      if (rows.length && initialTotal !== targetTotal) {
+        rows[rows.length - 1].value += targetTotal - initialTotal;
+      }
+      const rowTotal = rows.reduce((sum, row) => sum + row.value, 0);
+      document.getElementById("quoteBreakdown").innerHTML = rows.map((row) => `
+        <div class="breakdown-row"><span>${escapeHtml(row.label)}</span><strong>${row.signed ? formatSignedKrw(row.value) : formatKrw(row.value)}</strong></div>
+      `).join("") + `<div class="breakdown-row"><span>정상 권장 견적</span><strong>${formatKrw(rowTotal)}</strong></div>`;
 
       const missing = quoteMissingInformation();
       const missingList = document.getElementById("missingInfoList");
       const actualOffer = Math.max(0, numberValue("projectPrice"));
+      const actualOfferHourly = data.adjustedHours > 0 ? actualOffer / data.adjustedHours : 0;
+      const breakEvenHourly = data.baseHours > 0 ? (data.minimumQuote / data.baseHours) : data.hourlyRate;
       const discountWarning = actualOffer && actualOffer < relationship
-        ? `<li>단가 경고: 입력한 실제·제안 금액 ${formatKrw(actualOffer)}은 관계 유지 견적보다 ${formatKrw(relationship - actualOffer)} 낮습니다.</li>`
+        ? `<li>단가 경고: ${formatKrw(actualOffer)}은 관계 유지 견적보다 ${formatKrw(relationship - actualOffer)} 낮습니다. 예상 실질 시급 ${formatKrw(actualOfferHourly)}/시간, 손익 방어 시급 약 ${formatKrw(breakEvenHourly)}/시간입니다.</li>`
+        : "";
+      const currentStart = document.getElementById("startDate").value;
+      const currentDeadline = document.getElementById("deadline").value;
+      const overlapCount = currentStart && currentDeadline
+        ? readSavedQuotes().filter((item) => item.startDate && item.deadline && item.startDate <= currentDeadline && item.deadline >= currentStart).length
+        : 0;
+      const overlapWarning = overlapCount
+        ? `<li>일정 겹침: 선택 기간에 저장 견적 ${overlapCount}건이 있습니다. 작업 가능시간을 확인하세요.</li>`
         : "";
       missingList.innerHTML = (missing.length
         ? `<li>고객에게 추가 확인: ${missing.join(", ")}</li><li>질문 예시: ${missing.join("과 ")}을 알려주시면 확정 견적을 안내드릴 수 있습니다.</li>`
-        : "") + discountWarning;
+        : "") + overlapWarning + discountWarning;
       document.getElementById("quoteCompletenessNote").textContent = missing.length
         ? `견적 정확도를 높이려면 ${missing.join(", ")} 확인이 필요합니다.`
         : "핵심 견적 정보가 모두 입력되어 있습니다.";
@@ -7187,8 +7380,37 @@
       };
     }
 
+    function todayAtMidnight() {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+
+    function hasPastQuoteDeadline() {
+      const deadline = parseDateInput(document.getElementById("deadline").value);
+      return Boolean(deadline && deadline < todayAtMidnight());
+    }
+
+    function customerTaskLabel(key) {
+      const minutes = Math.max(1, numberValue("longformFinalMinutes"));
+      if (key === "denseCaption") return `고밀도 전체 자막(최종본 ${minutes}분 전체)`;
+      if (key === "derivedShorts") return `파생 숏폼 ${Math.max(1, Math.round(numberValue("shortformCount")))}편(각 ${Math.max(5, numberValue("shortformFinalSeconds"))}초)`;
+      return quoteTaskPrices[key]?.label || key;
+    }
+
+    function customerScopeLists() {
+      const selected = new Set(selectedQuoteTasks());
+      const included = ["컷편집", "기본 자막", "BGM·효과음", "기본 색보정"];
+      selected.forEach((key) => included.push(customerTaskLabel(key)));
+      const exclusions = ["motion", "translation", "derivedShorts", "thumbnail", "masking"]
+        .filter((key) => !selected.has(key))
+        .map(customerTaskLabel);
+      exclusions.unshift("원본 추가", "합의되지 않은 구성 변경");
+      return { included, exclusions };
+    }
+
     function buildCustomerQuoteText() {
       const result = currentQuoteResult();
+      const scopes = customerScopeLists();
       const typeLine = result.mode === "shortform"
         ? `최종본 ${numberValue("shortformFinalSeconds")}초 · ${numberValue("shortformCount")}편`
         : `최종본 ${numberValue("longformFinalMinutes")}분 · ${numberValue("longformCameras")}캠`;
@@ -7197,9 +7419,9 @@
         "",
         `작업 조건: ${typeLine}`,
         `제안 견적: ${result.recommended}`,
-        `포함 범위: 컷편집, 기본 자막, BGM·효과음, 기본 색보정, 수정 ${result.revisions}회`,
-        "제외/별도 협의: 원본 추가, 구성 변경, 고급 모션그래픽, 번역, 추가 결과물",
-        `추가 수정: 포함 횟수 이후 회당 기존 견적의 25%`,
+        `포함 범위: ${scopes.included.join(", ")}, 수정 ${result.revisions}회`,
+        `제외/별도 협의: ${scopes.exclusions.join(", ")}`,
+        `추가 수정: 포함 횟수 이후 회당 기존 견적의 ${Math.round(pricingRules.revisionRate * 100)}%`,
         `납기: ${result.deadline}`,
         `견적 유효기간: 전달일로부터 ${result.validity}일`,
         "",
@@ -7222,6 +7444,14 @@
     }
 
     async function copyQuoteText(kind) {
+      if (kind === "customer" && hasPastQuoteDeadline()) {
+        const preview = document.getElementById("quoteCopyPreview");
+        preview.textContent = "마감일이 이미 지났습니다. 오늘 이후 날짜로 수정한 뒤 고객용 견적을 복사하세요.";
+        document.getElementById("copyState").textContent = "고객용 견적 복사를 차단했습니다. 마감일을 수정하세요.";
+        document.getElementById("deadline").focus();
+        setQuoteProgress(4);
+        return;
+      }
       const text = kind === "customer" ? buildCustomerQuoteText() : buildInternalQuoteText();
       const preview = document.getElementById("quoteCopyPreview");
       preview.textContent = text;
@@ -7229,22 +7459,60 @@
       document.getElementById("copyState").textContent = copied
         ? `${kind === "customer" ? "고객용" : "내부용"} 견적을 복사했습니다.`
         : "자동 복사가 막혀 아래 미리보기에 문구를 표시했습니다.";
+      setQuoteProgress(kind === "customer" ? 7 : 6);
     }
 
     function saveCurrentQuote() {
+      if (hasPastQuoteDeadline()) {
+        document.getElementById("copyState").textContent = "지난 마감일로는 견적을 저장할 수 없습니다. 마감일을 수정하세요.";
+        document.getElementById("deadline").focus();
+        setQuoteProgress(4);
+        return;
+      }
       let saved = [];
       try { saved = JSON.parse(localStorage.getItem(SAVED_QUOTES_STORAGE_KEY) || "[]"); } catch {}
+      const quoteId = `quote-${Date.now()}`;
+      const projectName = document.getElementById("quoteProjectName").value.trim() || "이름 없는 견적";
+      const recommendedQuote = Number(document.getElementById("sustainableQuote").textContent.replace(/[^0-9]/g, "")) || 0;
       const item = {
-        id: `quote-${Date.now()}`,
+        id: quoteId,
         savedAt: new Date().toISOString(),
+        projectName,
+        startDate: document.getElementById("startDate").value,
+        deadline: document.getElementById("deadline").value,
+        reportDate: document.getElementById("deadline").value
+          ? sameDateKey(addDays(parseDateInput(document.getElementById("deadline").value), -2))
+          : "",
+        estimatedHours: numberValue("baseHours"),
+        recommendedQuote,
         customer: buildCustomerQuoteText(),
         internal: buildInternalQuoteText(),
         controls: currentControlState()
       };
       saved.unshift(item);
       localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, JSON.stringify(saved.slice(0, 20)));
+      const linkedSchedule = {
+        id: `schedule-${Date.now()}`,
+        sourceQuoteId: quoteId,
+        name: projectName,
+        type: "견적",
+        startDate: item.startDate,
+        deadline: item.deadline,
+        recommendedQuote,
+        remainingHours: Math.max(0, numberValue("baseHours")),
+        conditionDelay: Math.max(0, numberValue("condition")),
+        dailyHours: Math.max(0.5, numberValue("dailyHours")),
+        progress: 0,
+        notes: `저장 견적 ${formatKrw(recommendedQuote)} · 2일 전 보고 ${item.reportDate || "협의"}`
+      };
+      schedules.push(linkedSchedule);
+      saveSchedules();
+      calculate();
       renderSavedQuotes();
-      document.getElementById("copyState").textContent = `현재 견적을 저장했습니다. 저장 견적 ${Math.min(saved.length, 20)}개`;
+      renderSchedules();
+      renderCalendar();
+      setQuoteProgress(7);
+      document.getElementById("copyState").textContent = `현재 견적을 저장하고 캘린더에 반영했습니다. 저장 견적 ${Math.min(saved.length, 20)}개`;
     }
 
     function readSavedQuotes() {
@@ -7272,7 +7540,9 @@
         const article = document.createElement("article");
         article.className = "schedule-card";
         const heading = document.createElement("strong");
-        heading.textContent = new Date(item.savedAt).toLocaleString("ko-KR");
+        heading.textContent = item.projectName
+          ? `${item.projectName} · ${new Date(item.savedAt).toLocaleString("ko-KR")}`
+          : new Date(item.savedAt).toLocaleString("ko-KR");
         const preview = document.createElement("p");
         preview.textContent = String(item.customer || "").split("\n").find((line) => line.startsWith("제안 견적")) || "저장 견적";
         const actions = document.createElement("div");
@@ -7289,13 +7559,21 @@
           document.getElementById("copyState").textContent = "저장 견적을 현재 계산기에 불러왔습니다.";
         });
         const remove = document.createElement("button");
-        remove.className = "button";
+        remove.className = "button destructive";
         remove.type = "button";
         remove.textContent = "삭제";
-        remove.addEventListener("click", () => {
-          localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, JSON.stringify(saved.filter((savedItem) => savedItem.id !== item.id)));
-          renderSavedQuotes();
-        });
+        remove.addEventListener("click", () => requestConfirmedAction(
+          "저장 견적과 연결된 캘린더 일정을 함께 삭제합니다.",
+          "견적 삭제",
+          () => runWithUndo("저장 견적을 삭제했습니다.", () => {
+            localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, JSON.stringify(saved.filter((savedItem) => savedItem.id !== item.id)));
+            schedules = schedules.filter((schedule) => schedule.sourceQuoteId !== item.id);
+            saveSchedules();
+            renderSavedQuotes();
+            renderSchedules();
+            renderCalendar();
+          })
+        ));
         actions.append(apply, remove);
         article.append(heading, preview, actions);
         list.appendChild(article);
@@ -7310,11 +7588,15 @@
       const labels = mode === "shortform"
         ? [`숏폼 ${numberValue("shortformFinalSeconds")}초`, `${numberValue("shortformCount")}편`, `${numberValue("shortformCameras")}캠`, `수정 ${numberValue("revisionRounds")}회`]
         : [`최종본 ${numberValue("longformFinalMinutes")}분`, `${numberValue("longformCameras")}캠`, longformScopeSettings[document.getElementById("longformScope").value].label, `수정 ${numberValue("revisionRounds")}회`];
-      chips.innerHTML = labels.map((label) => `<span class="chip">${label}</span>`).join("");
+      const chipRow = (label, values) => `<div class="chip-group"><strong class="chip-group-label">${label}</strong>${values.map((value) => `<span class="chip">${escapeHtml(value)}</span>`).join("")}</div>`;
+      chips.classList.add("chip-groups");
+      chips.innerHTML = chipRow("문의에서 읽음", lastParsedQuoteLabels.length ? lastParsedQuoteLabels : ["직접 입력"])
+        + chipRow("현재 설정값", labels);
       document.getElementById("quickQuoteResultTitle").textContent = `예상 권장가 ${document.getElementById("recommendedQuote").textContent}`;
     }
 
     function calculate() {
+      applyPricingSettings();
       updateServiceCosts();
       calculateLongformQuote();
       updateHourlyRateHint();
@@ -7362,7 +7644,7 @@
         revisionRounds
       );
       const taskAddons = quoteMode === "shortform" ? 0 : taskAddonTotal(currentLongform.minutes);
-      const minuteRecommendedQuote = roundToThousand(minuteQuote.recommended + taskAddons);
+      const minuteRecommendedQuote = roundToThousand(minuteQuote.recommendedRaw + taskAddons);
       const shortformQuote = calculateShortformQuote(costPerHour, difficulty, rush, revisionRounds);
       let recommendedQuote = minuteRecommendedQuote;
       let minimumQuote = minuteQuote.minimum;
@@ -7387,6 +7669,53 @@
         : roundToThousand(recommendedQuote * 1.25);
       const actualHourly = adjustedHours > 0 && projectPrice > 0 ? projectPrice / adjustedHours : 0;
       const quoteGap = projectPrice > 0 ? projectPrice - recommendedQuote : 0;
+
+      const minuteRows = (() => {
+        const base = currentLongform.recommendedQuote;
+        const beforeRounding = base + minuteQuote.difficultyAddon + minuteQuote.rushAddon + minuteQuote.revisionAddon + taskAddons;
+        return [
+          { label: `기본 작업 · ${currentLongform.cameraCount}캠 최종본 ${currentLongform.minutes}분`, value: base },
+          { label: `난이도·레퍼런스 조정 · ${difficulty.toFixed(2)}배 기준`, value: minuteQuote.difficultyAddon },
+          { label: `납기 조정 · ${rush.toFixed(2)}배`, value: minuteQuote.rushAddon },
+          { label: `추가 수정 ${Math.max(0, revisionRounds - 1)}회 · 회당 ${Math.round(pricingRules.revisionRate * 100)}%`, value: minuteQuote.revisionAddon },
+          { label: `선택한 세부 작업 ${selectedQuoteTasks().length}건`, value: taskAddons },
+          { label: "천원 단위 반올림", value: minuteRecommendedQuote - beforeRounding, signed: true }
+        ];
+      })();
+      const hourlyRows = (() => {
+        const baseLabor = baseHours * hourlyRate;
+        const difficultyAddon = Math.max(0, (baseLabor * difficulty) - baseLabor);
+        const rushAddon = Math.max(0, baseLabor * difficulty * (rush - 1));
+        const beforeRounding = baseLabor + difficultyAddon + rushAddon + toolAllocation;
+        return [
+          { label: `기본 작업 · ${baseHours.toFixed(1)}시간 × ${formatKrw(hourlyRate)}`, value: baseLabor },
+          { label: `난이도 조정 · ${difficulty.toFixed(2)}배`, value: difficultyAddon },
+          { label: `납기 조정 · ${rush.toFixed(2)}배`, value: rushAddon },
+          { label: "프로그램 사용료 배분", value: toolAllocation },
+          { label: "천원 단위 반올림", value: hourlyRecommendedQuote - beforeRounding, signed: true }
+        ];
+      })();
+      const shortformRows = (() => {
+        const difficultyAddon = Math.max(0, shortformQuote.recommendedLabor - shortformQuote.baseLabor);
+        const rushAddon = Math.max(0, shortformQuote.adjustedBase * (rush - 1));
+        const revisionAddon = Math.max(0, shortformQuote.adjustedBase * rush * (shortformQuote.revisionMultiplier - 1));
+        const calculatedBeforeMinimum = shortformQuote.baseLabor + difficultyAddon + shortformQuote.toolCost + rushAddon + revisionAddon;
+        const minimumAdjustment = Math.max(0, shortformQuote.minimum - calculatedBeforeMinimum);
+        const beforeRounding = calculatedBeforeMinimum + minimumAdjustment;
+        return [
+          { label: `기본 작업 · ${shortformQuote.count}편 × ${shortformQuote.hoursPerPiece}시간`, value: shortformQuote.baseLabor },
+          { label: `난이도 조정 · ${difficulty.toFixed(2)}배`, value: difficultyAddon },
+          { label: "프로그램 사용료 배분", value: shortformQuote.toolCost },
+          { label: `납기 조정 · ${rush.toFixed(2)}배`, value: rushAddon },
+          { label: `추가 수정 ${Math.max(0, revisionRounds - 1)}회`, value: revisionAddon },
+          { label: `편당 최소 작업비 ${formatKrw(pricingRules.shortformMinimum)}`, value: minimumAdjustment },
+          { label: "천원 단위 반올림", value: shortformQuote.recommended - beforeRounding, signed: true }
+        ];
+      })();
+      let breakdownRows = minuteRows;
+      if (quoteMode === "shortform") breakdownRows = shortformRows;
+      else if (quoteMode === "hourly") breakdownRows = hourlyRows;
+      else if (quoteMode === "highest") breakdownRows = hourlyRecommendedQuote >= minuteRecommendedQuote ? hourlyRows : minuteRows;
 
       if (referenceAnalysisState) renderReferenceAnalysis(referenceAnalysisState);
 
@@ -7438,7 +7767,8 @@
         difficulty,
         rush,
         revisionRounds,
-        currentLongform
+        currentLongform,
+        breakdownRows
       });
       renderCurrentQuoteChips();
       saveQuoteMeta();
@@ -7452,6 +7782,7 @@
         : 0;
       const reportDate = deadline ? addDays(deadline, -2) : null;
       const status = document.getElementById("deadlineStatus");
+      const deadlineWarning = document.getElementById("deadlineWarning");
 
       document.getElementById("adjustedHours").textContent = `${daysNeeded}일`;
       document.getElementById("adjustedHoursNote").textContent =
@@ -7464,12 +7795,19 @@
               availableDays >= daysNeeded ? "일정 가능" : `${daysNeeded - availableDays}일 부족`
             }`
           : "시작일과 마감일을 고르면 선택한 작업일 기준으로 기간을 계산합니다.";
-      if (deadline && deadline < new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) {
+      const pastDeadline = deadline && deadline < todayAtMidnight();
+      deadlineWarning.textContent = pastDeadline
+        ? "이미 지난 마감일입니다. 고객용 복사와 견적 저장 전 날짜를 수정하세요."
+        : "";
+      if (pastDeadline) {
         document.getElementById("workdayRangeSummary").textContent += " · 저장된 과거 작업 날짜입니다.";
       }
 
       status.className = "status";
-      if (!deadline || !finishDate) {
+      if (pastDeadline) {
+        status.textContent = "마감 지남";
+        status.classList.add("danger");
+      } else if (!deadline || !finishDate) {
         status.textContent = "마감일 없음";
       } else {
         const remaining = diffDays(new Date(finishDate), new Date(deadline));
@@ -7663,6 +8001,14 @@
       document.getElementById("originalMinutes").value = "40";
       document.getElementById("sourceEditState").value = "raw";
       document.getElementById("quoteValidityDays").value = "7";
+      document.getElementById("quoteProjectName").value = "";
+      const pricingDefaults = {
+        rate1Hourly: 30000, rate1Floor: 15000, rate1Recommended: 18000, rate1High: 22000, rate1Minimum: 90000,
+        rate2Hourly: 40000, rate2Floor: 22000, rate2Recommended: 25000, rate2High: 30000, rate2Minimum: 130000,
+        rate3Hourly: 50000, rate3Floor: 30000, rate3Recommended: 35000, rate3HighMin: 40000, rate3HighMax: 45000, rate3Minimum: 180000,
+        shortformMinimumRate: 30000, revisionSurchargeRate: 25
+      };
+      Object.entries(pricingDefaults).forEach(([id, value]) => { document.getElementById(id).value = String(value); });
       document.querySelectorAll("[data-task], [data-material]").forEach((input) => { input.checked = false; });
       quoteMetaState = { tasks: [], materials: [], sources: {} };
       document.getElementById("quickQuoteText").value = "";
@@ -7838,6 +8184,15 @@
       document.querySelectorAll("[data-workspace-tab]").forEach((button) => {
         button.addEventListener("click", () => setWorkspace(button.dataset.workspaceTab, { scroll: true }));
       });
+      document.querySelectorAll("[data-quote-step]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = document.getElementById(button.dataset.stepTarget);
+          setWorkspace("quote");
+          setQuoteProgress(button.dataset.quoteStep);
+          target?.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (target?.matches("input, textarea, select, button")) target.focus();
+        });
+      });
       document.getElementById("beginnerModeButton").addEventListener("click", () => setQuoteInputMode("beginner"));
       document.getElementById("expertModeButton").addEventListener("click", () => setQuoteInputMode("expert"));
       document.querySelectorAll("[data-task], [data-material]").forEach((input) => {
@@ -8008,9 +8363,10 @@
         deadline.disabled = event.currentTarget.checked;
         if (event.currentTarget.checked) deadline.value = "";
       });
-      document.getElementById("applyButton").addEventListener("click", applyCurrentInputs);
       document.getElementById("exportButton").addEventListener("click", exportBackup);
       document.getElementById("importButton").addEventListener("click", importBackup);
+      document.getElementById("manageExportButton").addEventListener("click", exportBackup);
+      document.getElementById("manageImportButton").addEventListener("click", importBackup);
       document.getElementById("copyButton").addEventListener("click", copySummary);
       document.getElementById("resetButton").addEventListener("click", resetAll);
       document.getElementById("copyCustomerQuoteButton").addEventListener("click", () => copyQuoteText("customer"));
@@ -8036,16 +8392,16 @@
       });
       document.getElementById("applyBackupImportButton").addEventListener("click", () => {
         const parsed = document.getElementById("backupImportText")._parsedBackup;
-        if (parsed) applyBackupPayload(parsed, false);
+        if (parsed) runWithUndo("백업을 가져왔습니다.", () => applyBackupPayload(parsed, false));
       });
       document.getElementById("resetThenImportButton").addEventListener("click", () => {
         const parsed = document.getElementById("backupImportText")._parsedBackup;
-        if (parsed) applyBackupPayload(parsed, true);
+        if (parsed) runWithUndo("기존 값을 초기화하고 백업을 가져왔습니다.", () => applyBackupPayload(parsed, true));
       });
       document.getElementById("cancelBackupImportButton").addEventListener("click", () => document.getElementById("backupImportDialog").close());
       document.getElementById("confirmResetButton").addEventListener("click", () => {
         const scope = document.querySelector('input[name="resetScope"]:checked')?.value || "quote";
-        performScopedReset(scope);
+        runWithUndo("선택한 범위를 초기화했습니다.", () => performScopedReset(scope));
       });
       document.getElementById("cancelResetButton").addEventListener("click", () => document.getElementById("resetDialog").close());
       document.querySelectorAll("[data-mobile-target]").forEach((button) => {
@@ -8061,7 +8417,13 @@
       window.addEventListener("resize", () => {
         if (window.matchMedia("(max-width: 820px)").matches) setTopbarExpanded(false, false);
       }, { passive: true });
-      document.getElementById("presetOutsourceButton").addEventListener("click", applyOutsourcePreset);
+      document.getElementById("presetOutsourceButton").addEventListener("click", () => {
+        requestConfirmedAction(
+          "현재 견적 입력값을 정기 외주 실제 사례로 바꿉니다.",
+          "예시 적용",
+          () => runWithUndo("정기 외주 예시를 적용했습니다.", applyOutsourcePreset)
+        );
+      });
       document.getElementById("presetThreeCamFullButton").addEventListener("click", () => {
         applyThreeCamQuotePreset("full", 400000);
       });
@@ -8072,6 +8434,24 @@
         applyThreeCamQuotePreset("rough", 350000);
       });
       document.getElementById("signedOutAuth").addEventListener("submit", sendLoginLink);
+      document.getElementById("headerAuthButton").addEventListener("click", () => setWorkspace("manage", { scroll: true, targetId: "authStrip" }));
+      document.getElementById("confirmActionButton").addEventListener("click", () => {
+        const pending = pendingConfirmedAction;
+        pendingConfirmedAction = null;
+        document.getElementById("confirmActionDialog").close();
+        pending?.action();
+      });
+      document.getElementById("cancelActionButton").addEventListener("click", () => {
+        pendingConfirmedAction = null;
+        document.getElementById("confirmActionDialog").close();
+      });
+      document.getElementById("undoButton").addEventListener("click", () => {
+        const snapshot = undoSnapshot;
+        clearTimeout(undoTimer);
+        document.getElementById("undoBar").hidden = true;
+        undoSnapshot = null;
+        restoreUndoSnapshot(snapshot);
+      });
       document.getElementById("syncSchedulesButton").addEventListener("click", () => {
         syncAllCloudData({ pushLocal: true });
       });

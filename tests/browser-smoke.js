@@ -91,35 +91,10 @@ let browserInstance;
                       estimatedCameraCount: 2,
                       cameraConfidence: 0.82,
                       cameraReason: "정면과 측면 구도가 반복됩니다.",
-                      editingPace: "fast",
-                      needsFrameEvidence: false,
-                      visualEvidence: {
-                        camera: ["정면과 측면 구도가 반복됩니다."],
-                        broll: ["제품 보조 컷이 보입니다."],
-                        graphics: ["자료 화면이 삽입됩니다."],
-                        subtitles: ["큰 자막이 계속 보입니다."],
-                        motion: ["간단한 줌 리프레임이 보입니다."],
-                        pacing: ["빠른 컷 전환이 보입니다."],
-                        missing: []
-                      },
-                      workFactors: {
-                        cutDensity: "high",
-                        subtitleDensity: "high",
-                        pointTypography: "medium",
-                        inserts: "medium",
-                        broll: "medium",
-                        motionGraphics: "low",
-                        maskingTracking: "unknown",
-                        zoomReframe: "medium",
-                        soundEffects: "unknown",
-                        musicEditing: "unknown",
-                        color: "medium",
-                        research: "low",
-                        multicam: "medium"
-                      }
+                      editingPace: "fast"
                     },
                     frames: [0, 1, 2, 3].map((index) => ({
-                      image: "https://i.ytimg.com/vi/7c1lkYje1f0/" + index + ".jpg",
+                      image: "https://i.ytimg.com/vi/K36Et8h552w/" + index + ".jpg",
                       label: "대표 장면 " + (index + 1)
                     }))
                   },
@@ -135,8 +110,8 @@ let browserInstance;
   await page.route("https://www.youtube.com/oembed**", (route) => route.fulfill({
     contentType: "application/json",
     body: JSON.stringify({
-      title: "아직도 영어 학원 찾아다녀? 엄마 맘에 쏙 드는 '캐츠잉글리시!' [리뷰스마][광고]",
-      thumbnail_url: "https://i.ytimg.com/vi/7c1lkYje1f0/hqdefault.jpg"
+      title: "테스트 레퍼런스",
+      thumbnail_url: "https://i.ytimg.com/vi/K36Et8h552w/hqdefault.jpg"
     })
   }));
   await page.route("https://i.ytimg.com/**", (route) => route.fulfill({
@@ -169,6 +144,19 @@ let browserInstance;
 
   await page.fill(
     "#quickQuoteText",
+    "원본 50분을 최종본 12분으로 편집, 3캠, 전체 자막과 기본 색보정, 파생 숏폼 5개 각 50초, 수정은 2회까지, 이번 주 금요일 마감"
+  );
+  await page.click("#parseQuickQuoteButton");
+  check(await page.inputValue("#longformCameras") === "3", "audit parser 3cam");
+  check(await page.inputValue("#revisionRounds") === "2", "audit parser revision phrase");
+  check(await page.inputValue("#shortformCount") === "5", "audit parser derived short count");
+  check(await page.isChecked('[data-task="derivedShorts"]'), "audit parser derived shorts task");
+  check(await page.inputValue("#deadline") === "2026-08-21", "audit parser relative Friday deadline");
+  check(await page.inputValue("#rush") === "1.5", "audit parser relative deadline rush");
+  check((await page.textContent("#quickQuoteChips")).includes("문의에서 읽음"), "parsed and current values are separated");
+
+  await page.fill(
+    "#quickQuoteText",
     "최종본 60초 쇼츠 1편, 1캠, 편당 예상 작업 1시간, 전체 자막"
   );
   await page.click("#parseQuickQuoteButton");
@@ -178,12 +166,22 @@ let browserInstance;
   check((await page.textContent("#shortformRecommendedQuote")).includes("30,000") === false, "short-form recommendation uses workload");
 
   await page.selectOption("#quoteMode", "longform");
+  await page.fill("#longformFinalMinutes", "10");
   await page.selectOption("#longformCameras", "1");
   await page.fill("#revisionRounds", "1");
   await page.selectOption("#difficulty", "1.25");
   await page.selectOption("#rush", "1");
   await page.evaluate(() => calculate());
   check((await page.textContent("#longformRecommendedQuote")).includes("180,000"), "1cam quote UI");
+  await page.evaluate(() => {
+    document.getElementById("rate1Recommended").value = "20000";
+    calculate();
+  });
+  check((await page.textContent("#longformRecommendedQuote")).includes("200,000"), "editable base rate updates quote immediately");
+  await page.evaluate(() => {
+    document.getElementById("rate1Recommended").value = "18000";
+    calculate();
+  });
   await page.selectOption("#longformCameras", "2");
   await page.evaluate(() => calculate());
   check((await page.textContent("#longformRecommendedQuote")).includes("250,000"), "2cam quote UI");
@@ -202,6 +200,36 @@ let browserInstance;
     await page.selectOption("#quoteMode", mode);
     check(/\d/.test(await page.textContent("#recommendedQuote")), `${mode} quote mode calculates`);
   }
+  const breakdown = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll("#quoteBreakdown .breakdown-row")];
+    const amounts = rows.map((row) => {
+      const text = row.querySelector("strong").textContent.trim();
+      const value = Number(text.replace(/[^0-9]/g, "")) || 0;
+      return text.startsWith("-") ? -value : value;
+    });
+    return { componentTotal: amounts.slice(0, -1).reduce((sum, value) => sum + value, 0), finalTotal: amounts.at(-1) };
+  });
+  check(breakdown.componentTotal === breakdown.finalTotal, "quote breakdown sums to final recommendation", JSON.stringify(breakdown));
+  await page.check('[data-task="derivedShorts"]');
+  await page.fill("#shortformCount", "5");
+  const customerScope = await page.evaluate(() => buildCustomerQuoteText());
+  check(customerScope.includes("파생 숏폼 5편"), "customer quote includes selected derived shorts");
+  check(!customerScope.split("\n").find((line) => line.startsWith("제외/별도 협의"))?.includes("파생 숏폼"), "customer quote does not contradict selected tasks");
+
+  await page.selectOption("#quoteMode", "longform");
+  await page.fill("#deadline", "2026-08-19");
+  await page.click("#copyCustomerQuoteButton");
+  check((await page.textContent("#copyState")).includes("차단"), "past deadline blocks customer quote copy");
+  check((await page.textContent("#deadlineWarning")).includes("지난 마감일"), "past deadline warning is visible");
+  await page.fill("#quoteProjectName", "저장 견적 캘린더 테스트");
+  await page.fill("#startDate", "2026-08-20");
+  await page.fill("#deadline", "2026-08-25");
+  await page.click("#saveQuoteButton");
+  check(await page.evaluate(() => schedules.some((item) => item.sourceQuoteId)), "saved quote creates linked schedule");
+  check((await page.textContent("#missingInfoList")).includes("일정 겹침"), "overlapping saved quote warns about capacity");
+  await page.click('[data-workspace-tab="work"]');
+  check((await page.textContent("#calendarGrid")).includes("저장 견적 캘린더 테스트"), "saved quote period appears in calendar");
+  await page.click('[data-workspace-tab="quote"]');
 
   check((await page.textContent("#monthlyRevenue")).includes("2,470,000"), "monthly revenue UI");
   await page.click('[data-workspace-tab="manage"]');
@@ -251,16 +279,13 @@ let browserInstance;
     "local video stays on device"
   );
 
-  const referenceUrl = "https://youtu.be/7c1lkYje1f0?si=lJ2h7Q3nbJfwBkze";
+  const referenceUrl = "https://www.youtube.com/watch?v=K36Et8h552w";
   await page.fill("#referenceUrl", referenceUrl);
   await page.evaluate(() => { document.getElementById("useAiFrameAnalysis").checked = false; updateReferenceAnalysisMode(); });
   await page.click("#analyzeReferenceButton");
   await page.waitForFunction(() => !document.getElementById("referenceResult").hidden);
   const generatedPrompt = await page.inputValue("#chatgptPromptText");
   check(generatedPrompt.includes(referenceUrl), "ChatGPT prompt generation", generatedPrompt.slice(0, 240));
-  check(generatedPrompt.includes("B-roll") && generatedPrompt.includes('"visualEvidence"'), "ChatGPT prompt asks for detailed visual evidence");
-  check(generatedPrompt.includes("7c1lkYje1f0") && generatedPrompt.includes("maxresdefault.jpg"), "ChatGPT prompt includes public YouTube thumbnail fallbacks");
-  check(generatedPrompt.includes("needsFrameEvidence") && generatedPrompt.includes("confidence는 0.25~0.45"), "ChatGPT prompt handles inaccessible videos with provisional estimates");
   const popupPromise = page.waitForEvent("popup");
   await page.click("#prepareChatgptAnalysisButton");
   const popup = await popupPromise;
@@ -268,7 +293,9 @@ let browserInstance;
   check(Boolean(popup), "ChatGPT button opens a new tab");
   await popup.close();
 
-  await page.evaluate(() => { authSession = { user: { id: "test-user" } }; });
+  await page.evaluate(() => { authSession = { user: { id: "test-user", email: "test@example.com" } }; });
+  await page.evaluate(() => renderAuthState());
+  check((await page.textContent("#headerAuthButton")).includes("연결됨"), "header shows authentication state");
   await page.evaluate(() => { document.getElementById("useAiFrameAnalysis").checked = true; updateReferenceAnalysisMode(); });
   await page.click("#analyzeReferenceButton");
   await page.waitForFunction(() => document.getElementById("copyState").textContent.includes("AI가 공개 대표 장면"));
@@ -279,87 +306,21 @@ let browserInstance;
   check((await page.textContent("#referenceReason")).includes("AI 대표 장면 판독"), "AI analysis rendered");
   check((await page.textContent("#referenceContentType")).includes("숏폼"), "AI content type rendered");
   check((await page.textContent("#referenceCameraCount")).includes("2캠"), "AI camera estimate rendered");
-  check((await page.textContent("#referenceEvidenceList")).includes("제품 보조 컷"), "AI visual evidence rendered");
   check(await page.inputValue("#shortformCameras") !== "2", "AI camera estimate does not silently apply");
   check(await page.isVisible("#referenceApplyPanel"), "AI suggestions require confirmation");
   await page.click("#applyReferenceSuggestionsButton");
   check(await page.inputValue("#shortformCameras") === "2", "confirmed AI camera estimate applied");
 
-  await page.selectOption("#difficulty", "1.25");
-  await page.fill("#chatgptAnalysisResult", JSON.stringify({
-    difficulty: "medium",
-    summary: "YouTube 영상 페이지와 영상 제목은 확인되지만 실제 영상 재생 및 시간대별 프레임 확인이 불가능해 화면 구성과 편집 스타일을 신뢰성 있게 판정할 수 없습니다.",
-    editingSignals: [
-      "영상 페이지와 제목 존재는 확인됨",
-      "실제 영상 프레임 및 화면 전환 확인 불가",
-      "B-roll·그래픽·모션그래픽 사용량 확인 불가"
-    ],
-    confidence: 0.12,
-    contentType: "unknown",
-    estimatedCameraCount: null,
-    cameraConfidence: 0.03,
-    cameraReason: "실제 영상 프레임을 확인할 수 없어 동일 피사체가 서로 다른 촬영 각도나 구도로 등장하는지 비교할 근거가 없습니다.",
-    editingPace: "unknown",
-    workFactors: {
-      cutDensity: "unknown",
-      subtitleDensity: "unknown",
-      pointTypography: "unknown",
-      inserts: "unknown",
-      broll: "unknown",
-      motionGraphics: "unknown",
-      maskingTracking: "unknown",
-      zoomReframe: "unknown",
-      soundEffects: "unknown",
-      musicEditing: "unknown",
-      color: "unknown",
-      research: "unknown",
-      multicam: "unknown"
-    }
-  }));
-  await page.click("#applyChatgptAnalysisButton");
-  check(await page.isVisible("#referenceApplyPanel"), "legacy low-confidence ChatGPT result is offered as provisional quote draft");
-  check((await page.textContent("#referenceInputStatus")).includes("보수 추정"), "legacy low-confidence ChatGPT result is labeled provisional");
-  check((await page.textContent("#referenceEvidenceList")).includes("공개 썸네일"), "legacy low-confidence ChatGPT result asks for thumbnail evidence");
-  check(await page.isDisabled("#applyReferenceCamera"), "legacy low-confidence camera estimate cannot be applied");
-  check(await page.inputValue("#difficulty") === "1.25", "legacy low-confidence difficulty does not silently apply");
-  await page.click("#applyReferenceSuggestionsButton");
-  check(await page.inputValue("#difficulty") === "1.5", "confirmed provisional ChatGPT difficulty applies");
-
   await page.fill("#chatgptAnalysisResult", JSON.stringify({
     difficulty: "high",
     summary: "고급 모션그래픽이 확인됩니다.",
-    editingSignals: ["모션그래픽", "B-roll", "포인트 자막"],
+    editingSignals: ["모션그래픽"],
     confidence: 0.9,
     contentType: "shortform",
     estimatedCameraCount: 3,
     cameraConfidence: 0.9,
     cameraReason: "세 방향 촬영 구도가 보입니다.",
-    editingPace: "fast",
-    needsFrameEvidence: false,
-    visualEvidence: {
-      camera: ["세 방향 촬영 구도가 보입니다."],
-      broll: ["제품과 현장 보조 컷이 삽입됩니다."],
-      graphics: ["정보 카드와 자료 화면이 보입니다."],
-      subtitles: ["포인트 자막과 강조 타이포가 많습니다."],
-      motion: ["모션그래픽 전환이 보입니다."],
-      pacing: ["짧은 컷 리듬입니다."],
-      missing: []
-    },
-    workFactors: {
-      cutDensity: "high",
-      subtitleDensity: "high",
-      pointTypography: "high",
-      inserts: "high",
-      broll: "medium",
-      motionGraphics: "high",
-      maskingTracking: "medium",
-      zoomReframe: "medium",
-      soundEffects: "unknown",
-      musicEditing: "unknown",
-      color: "medium",
-      research: "medium",
-      multicam: "high"
-    }
+    editingPace: "fast"
   }));
   await page.click("#applyChatgptAnalysisButton");
   check(await page.inputValue("#difficulty") !== "1.8", "ChatGPT difficulty does not silently apply");
@@ -367,6 +328,16 @@ let browserInstance;
   check(await page.inputValue("#difficulty") === "1.8", "confirmed ChatGPT difficulty applies");
 
   await page.click("#topbarToggleButton");
+  const presetValueBefore = await page.inputValue("#longformFinalMinutes");
+  await page.click("#presetOutsourceButton");
+  check(await page.isVisible("#confirmActionDialog"), "preset requires confirmation");
+  await page.click("#cancelActionButton");
+  check(await page.inputValue("#longformFinalMinutes") === presetValueBefore, "cancelled preset preserves inputs");
+  await page.click("#presetOutsourceButton");
+  await page.click("#confirmActionButton");
+  check(await page.inputValue("#longformFinalMinutes") === "15", "confirmed preset applies");
+  await page.click("#undoButton");
+  check(await page.inputValue("#longformFinalMinutes") === presetValueBefore, "preset change can be undone");
   await page.click("#exportButton");
   const backupText = await page.evaluate(() => navigator.clipboard?.readText?.().catch(() => ""));
   await page.click("#importButton");
