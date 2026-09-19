@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -2378,6 +2378,42 @@
       .button, button, input, select { min-height: 44px; }
       .calendar-cell { min-height: 76px; }
     }
+    .brief-output { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 20px; scroll-margin-top: 120px; }
+    .brief-output[hidden], .brief-history[hidden] { display: none; }
+    .quick-quote-result[hidden] { display: none; }
+    .brief-lead { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: baseline; }
+    .brief-lead h3 { margin: 0; font-size: 18px; }
+    .brief-lead strong { font-size: 28px; color: var(--accent-strong); }
+    .brief-status { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .brief-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+    .brief-metrics div { min-width: 0; border-left: 3px solid var(--accent); padding-left: 10px; }
+    .brief-metrics span, .brief-metrics strong { display: block; overflow-wrap: anywhere; }
+    .brief-metrics span { font-size: 12px; color: var(--muted); }
+    .brief-metrics strong { font-size: 16px; margin-top: 5px; }
+    .brief-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+    .brief-fields label { min-width: 0; display: grid; gap: 6px; font-size: 12px; }
+    .brief-fields input, .brief-fields select { width: 100%; min-width: 0; font-size: 16px; }
+    .brief-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .brief-columns > div { min-width: 0; }
+    .brief-columns h4 { margin: 14px 0 8px; font-size: 14px; }
+    .brief-columns ul { padding-left: 20px; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+    .brief-cost { display: flex; gap: 12px; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .brief-cost span { min-width: 0; overflow-wrap: anywhere; }
+    .brief-cost b { white-space: nowrap; }
+    #briefReply { width: 100%; min-height: 240px; font-size: 14px; line-height: 1.7; margin: 8px 0; }
+    .brief-history { margin-top: 12px; }
+    .brief-history button { width: 100%; text-align: left; white-space: normal; margin: 4px 0; }
+    #quickQuotePanel .quick-quote-layout { grid-template-columns: minmax(0, 1fr); }
+    .brief-note { margin: 0; font-size: 12px; color: var(--muted); }
+    @media (max-width: 600px) {
+      .brief-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .brief-columns { grid-template-columns: minmax(0, 1fr); gap: 0; }
+      .brief-metrics { grid-template-columns: minmax(0, 1fr); }
+      .brief-metrics div { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+      .brief-metrics strong { margin: 0; }
+      #quickQuoteText { font-size: 16px; min-height: 170px; }
+      #briefReply { font-size: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -2495,26 +2531,72 @@
 
       <section class="panel quick-quote-panel" id="quickQuotePanel" aria-labelledby="quickQuoteTitle">
         <div class="panel-header">
-          <h2 id="quickQuoteTitle">텍스트로 빠른 견적</h2>
-          <p class="longform-header-note">받은 문의 내용을 그대로 붙여넣으면 조쉬가 조건을 추려 계산기에 적용합니다.</p>
+          <h2 id="quickQuoteTitle">조쉬에게 견적 물어보기</h2>
+          <p class="longform-header-note">무료 · 횟수 제한 없음 · 입력 조건 기준 가견적</p>
         </div>
         <div class="panel-body">
           <div class="quick-quote-layout">
             <div class="quick-quote-input">
               <label for="quickQuoteText">고객 문의 또는 작업 조건</label>
               <textarea id="quickQuoteText" placeholder="예: 원본 40분을 최종 10분 내외로 편집, 3캠, 컷편 포함 종편, 전체 자막과 기본 색보정, 수정 2회, 일주일 납기, 예상 작업 10시간"></textarea>
-              <small class="field-note">Ctrl+Enter로도 계산할 수 있습니다. 입력 원문은 이 브라우저에만 저장되고 클라우드에는 동기화되지 않습니다.</small>
+              <small class="field-note">입력은 이 기기에 저장됩니다. 링크의 영상 내용은 자동 판독하지 않습니다.</small>
               <div class="quick-quote-actions">
-                <button class="button primary" id="parseQuickQuoteButton" type="button">텍스트로 견적 계산</button>
+                <button class="button primary" id="consultQuoteButton" type="button">무료 견적 받기</button>
+                <button class="button" id="briefHistoryButton" type="button" aria-expanded="false" aria-controls="briefHistory">최근 상담</button>
+                <button class="button" id="parseQuickQuoteButton" type="button">상세 계산기에 입력</button>
                 <button class="button" id="fillQuickQuoteExampleButton" type="button">예시 불러오기</button>
               </div>
+              <div class="quick-quote-actions" aria-label="상담 예시">
+                <button class="button" type="button" data-brief-example="fashion">패션 5~7분</button>
+                <button class="button" type="button" data-brief-example="documentary">다큐 15분</button>
+                <button class="button" type="button" data-brief-example="shortform">숏폼 월 10편</button>
+              </div>
+              <p class="brief-status" id="briefStatus" role="status"></p>
+              <div class="brief-history" id="briefHistory" hidden></div>
             </div>
-            <div class="quick-quote-result" id="quickQuoteResult" aria-live="polite">
+            <div class="quick-quote-result" id="quickQuoteResult" aria-live="polite" hidden>
               <strong id="quickQuoteResultTitle">입력 대기 중</strong>
               <div class="quick-quote-chips" id="quickQuoteChips"></div>
               <p class="quick-quote-message" id="quickQuoteMessage">최종본 길이와 카메라 수가 있으면 가장 정확하게 계산됩니다.</p>
             </div>
           </div>
+          <section class="brief-output" id="briefOutput" aria-labelledby="briefHeading" tabindex="-1" hidden>
+            <div class="brief-lead"><h3 id="briefHeading">상담 제안가 · 편당</h3><strong id="briefPrice"></strong></div>
+            <p class="brief-status" id="briefRange"></p>
+            <div class="brief-metrics">
+              <div><span>협의 하한선</span><strong id="briefFloor"></strong></div>
+              <div><span>예상 집중 작업시간</span><strong id="briefHours"></strong></div>
+              <div><span>필요 작업일 · 일정 미확정</span><strong id="briefDays"></strong></div>
+            </div>
+            <details open><summary>읽어낸 조건 확인·수정</summary>
+              <div class="brief-fields">
+                <label>영상 유형<select id="briefProfile"><option value="general">일반 롱폼</option><option value="fashion">패션·제품 설명</option><option value="documentary">현장 다큐</option><option value="shortform">숏폼</option><option value="ad">광고·AI 숏폼</option></select></label>
+                <label>최종본 길이 (분)<input id="briefMinutes" type="number" min="0.1" max="180" step="0.1"></label>
+                <label>원본 전체 (분)<input id="briefRaw" type="number" min="0" max="1440" step="1"></label>
+                <label>카메라 수<select id="briefCameras"><option value="1">1캠</option><option value="2">2캠</option><option value="3">3캠</option></select></label>
+                <label>작업 범위<select id="briefScope"><option value="full">컷편집부터 종편까지</option><option value="locked">컷 확정 · 종편만</option><option value="light">축소 없이 NG·각도 정리</option><option value="cut">컷편집만</option></select></label>
+                <label>사진·자료<select id="briefPhotos"><option value="none">사진 작업 없음</option><option value="provided">전부 제공</option><option value="partial">일부 추가 검색</option><option value="research">대부분 직접 검색</option></select></label>
+                <label>자막<select id="briefCaptions"><option value="yes">기본 자막 포함</option><option value="no">자막 제외</option></select></label>
+                <label>수정 횟수<input id="briefRevisions" type="number" min="0" max="10" step="1"></label>
+                <label>월 편수 · 할인 전<input id="briefMonthly" type="number" min="1" max="100" step="1"></label>
+                <label>하루 집중 가능 (시간)<input id="briefDaily" type="number" min="0.5" max="12" step="0.5"></label>
+                <label>최소 희망 시급 (원)<input id="briefHourly" type="number" min="1000" max="200000" step="1000"></label>
+                <label>납기 조건<select id="briefUrgent"><option value="no">일반</option><option value="yes">급행 +30%</option></select></label>
+              </div>
+            </details>
+            <div class="brief-columns">
+              <div><h4>산출 근거</h4><div id="briefCosts"></div><p class="brief-status" id="briefMonthlyTotal"></p><p class="brief-status" id="briefCapacity"></p></div>
+              <div><h4>가정과 확인사항</h4><ul id="briefAssumptions"></ul><h4>고객에게 확인</h4><ul id="briefQuestions"></ul></div>
+            </div>
+            <label for="briefReply">고객 답장 초안</label>
+            <textarea id="briefReply"></textarea>
+            <p class="brief-note">조건을 바꾸면 답장 초안도 다시 계산됩니다. 상담 견적과 아래 상세 계산기는 별도 산식입니다.</p>
+            <div class="quick-quote-actions">
+              <button class="button primary" id="copyBriefReplyButton" type="button">답장 복사</button>
+              <button class="button" id="saveBriefButton" type="button">상담 저장</button>
+            </div>
+            <p class="brief-status" id="briefActionStatus" role="status"></p>
+          </section>
         </div>
       </section>
 
@@ -3006,9 +3088,9 @@
               <summary>분석 방법 선택</summary>
               <label class="reference-ai-option" for="useAiFrameAnalysis">
                 <input id="useAiFrameAnalysis" type="checkbox">
-                공개 YouTube 대표 장면 AI 분석 · OpenAI API 사용료 발생
+                모바일 실제 영상 AI 분석 · Gemini 무료 한도
               </label>
-              <small class="field-note" id="referenceModeNote">빠른 추정은 제목과 공개 정보만 확인합니다. 영상 파일은 외부 전송 없이 화면 복잡도만 판독합니다.</small>
+              <small class="field-note" id="referenceModeNote">빠른 추정은 제목과 링크만 사용합니다. 실제 영상 AI 분석을 켜면 PC 없이 공개 YouTube 영상 전체를 서버에서 확인합니다.</small>
             </details>
             <video id="referenceVideo" muted playsinline preload="metadata" hidden></video>
             <canvas id="referenceFrameCanvas" hidden></canvas>
@@ -3390,6 +3472,7 @@
     <button class="button" id="undoButton" type="button">되돌리기</button>
   </div>
 
+  <script src="./brief-quote.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const STORAGE_KEY = "josh-subscription-calculator-v2";
@@ -5053,7 +5136,8 @@
       const { data, error } = await supabaseClient.functions.invoke("analyze-reference", {
         body: {
           title,
-          url
+          url,
+          provider: "gemini"
         }
       });
       if (error) {
@@ -5083,7 +5167,12 @@
               label: String(frame.label || `대표 장면 ${index + 1}`)
             }))
         : [];
-      return { analysis, frames };
+      return {
+        analysis,
+        frames,
+        sourceMode: String(data?.sourceMode || "youtube-public-video-gemini"),
+        model: String(data?.model || "")
+      };
     }
 
     async function fetchReferenceMetadata(url) {
@@ -5121,6 +5210,7 @@
       const confidence = Math.round((Number(state.confidence) || 0) * 100);
       const suffix = confidence ? ` · 신뢰 ${confidence}%` : "";
       if (state.analysisMode === "chatgpt-subscription") return { label: `ChatGPT 수동 AI${suffix}`, className: "chatgpt" };
+      if (state.analysisMode === "ai-video") return { label: `실제 영상 AI · Gemini${suffix}`, className: "ai" };
       if (state.analysisMode === "ai") return { label: `대표 장면 AI${suffix}`, className: "ai" };
       if (state.analysisMode === "local") return { label: `화면 복잡도 분석${suffix || " · 신뢰 60%"}`, className: "local" };
       return { label: `제목 기반 추정 · 신뢰 ${confidence || 30}%`, className: "low" };
@@ -5180,6 +5270,8 @@
         ? "영상 프레임의 화면 변화와 디테일만 확인했습니다. 실제 편집 난도와 캠 수는 직접 확인하세요."
         : state.analysisMode === "metadata"
           ? "빠른 추정: 제목·링크 키워드로 기본 작업량을 가정했습니다. 캠 수와 실제 화면 구성은 견적 확정 전에 확인하세요."
+          : state.analysisMode === "ai-video"
+            ? "Gemini가 공개 YouTube 영상의 실제 화면·오디오를 서버에서 분석했습니다. 추정값은 적용 전에 확인하세요."
           : "분석 결과를 확인하고 아래 제안 중 필요한 항목만 적용하세요.";
 
       result.hidden = false;
@@ -5362,11 +5454,11 @@
       const useAi = document.getElementById("useAiFrameAnalysis").checked;
       const button = document.getElementById("analyzeReferenceButton");
       const note = document.getElementById("referenceModeNote");
-      button.textContent = useAi ? "대표 장면 AI 분석" : "빠른 추정";
+      button.textContent = useAi ? "실제 영상 AI 분석" : "빠른 추정";
       button.classList.toggle("primary", useAi);
       note.textContent = useAi
-        ? "공개 YouTube 대표 장면 4장을 OpenAI API가 시각 분석합니다. 전체 영상·오디오는 분석하지 않으며 별도 API 사용료가 발생합니다."
-        : "제목과 공개 정보만 사용하는 참고용 추정입니다. 영상 파일은 외부 전송 없이 화면 복잡도만 판독합니다.";
+        ? "공개 YouTube 실제 영상을 Gemini가 서버에서 분석합니다. PC가 필요 없고, 계정의 무료 한도 안에서만 실행됩니다. 비공개·일부공개 영상은 지원하지 않습니다."
+        : "제목과 링크만 사용하는 무료 빠른 추정입니다. 영상 파일은 외부 전송 없이 화면 복잡도만 판독합니다.";
     }
 
     async function analyzeReference() {
@@ -5403,7 +5495,7 @@
       button.disabled = true;
       button.textContent = useAiLinkAnalysis ? "AI 시각 분석 중" : "분석 중";
       document.getElementById("copyState").textContent = useAiLinkAnalysis
-        ? "공개 YouTube 대표 장면을 AI가 확인하고 있습니다."
+        ? "공개 YouTube 실제 영상을 서버에서 확인하고 있습니다. 화면을 닫아도 분석은 계속됩니다."
         : "공개 제목과 링크 정보를 확인하고 있습니다.";
       try {
         const metadata = await fetchReferenceMetadata(url);
@@ -5429,21 +5521,21 @@
             const contentType = inferReferenceContentType(url, analysis);
             applyReferenceEstimateToControls(analysis, contentType);
             referenceAnalysisState = {
-              sourceType: "ai-link",
+              sourceType: "ai-video",
               url: url.href,
               sourceLabel: url.href,
               platform,
               title: metadata.title,
               thumbnail: aiResult.frames[0]?.image || metadata.thumbnail,
               frames: aiResult.frames,
-              analysisMode: "ai",
+              analysisMode: "ai-video",
               aiDetails: analysis,
               contentType,
-              localReason: "공개 YouTube 대표 장면을 기준으로 분석했습니다.",
+              localReason: "공개 YouTube 실제 영상과 오디오를 Gemini가 분석했습니다.",
               reason:
-                `AI 대표 장면 판독: ${analysis.summary} ` +
+                `실제 영상 AI 판독: ${analysis.summary} ` +
                 (analysis.cameraReason ? `카메라 추정 근거: ${analysis.cameraReason} ` : "") +
-                "전체 영상과 오디오는 확인하지 않은 추정치입니다.",
+                "영상만으로 확인할 수 없는 원본 길이와 실제 의뢰 범위는 별도 확인이 필요합니다.",
               estimatedQuote: 0,
               applied: false,
               ...analysis
@@ -5451,7 +5543,7 @@
             calculate();
             renderReferenceAnalysis(referenceAnalysisState);
             document.getElementById("copyState").textContent =
-              `AI가 공개 대표 장면 ${aiResult.frames.length || 4}개를 판독했습니다. 적용할 항목을 직접 확인해주세요.`;
+              "Gemini가 공개 YouTube 실제 영상을 분석했습니다. 적용할 항목을 직접 확인해주세요.";
             return;
           } catch (error) {
             aiFailure = error.message || "AI 링크 분석을 사용할 수 없습니다.";
@@ -5633,6 +5725,159 @@
       return null;
     }
 
+    const BRIEF_DRAFT_KEY = "josh-free-brief-draft-v1";
+    const BRIEF_HISTORY_KEY = "josh-free-brief-history-v1";
+    let briefConditions = null;
+    let briefEstimate = null;
+    const briefFields = { profile: "briefProfile", minutes: "briefMinutes", raw: "briefRaw", cameras: "briefCameras", scope: "briefScope", photos: "briefPhotos", captions: "briefCaptions", revisions: "briefRevisions", monthly: "briefMonthly", daily: "briefDaily", hourly: "briefHourly", urgent: "briefUrgent" };
+    function briefStorageRead(key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; }
+    }
+    function briefStorageWrite(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+    }
+    function validBriefConditions(conditions) {
+      return conditions && !JoshBrief.estimate(conditions).error && Array.isArray(conditions.assumptions) && Array.isArray(conditions.questions);
+    }
+    function restoreBriefDraft() {
+      briefConditions = null;
+      briefEstimate = null;
+      document.getElementById("briefOutput").hidden = true;
+      document.getElementById("briefStatus").textContent = "";
+      const draft = briefStorageRead(BRIEF_DRAFT_KEY, null);
+      if (draft?.text === document.getElementById("quickQuoteText").value && validBriefConditions(draft.conditions)) {
+        briefConditions = draft.conditions; fillBriefFields(briefConditions);
+        document.getElementById("briefOutput").hidden = false; updateBriefEstimate();
+      }
+    }
+    function fillBriefFields(conditions) {
+      Object.entries(briefFields).forEach(([key, id]) => {
+        document.getElementById(id).value = typeof conditions[key] === "boolean" ? (conditions[key] ? "yes" : "no") : String(conditions[key]);
+      });
+    }
+    function updateBriefEstimate() {
+      if (!briefConditions) return;
+      const conditions = { ...briefConditions };
+      Object.entries(briefFields).forEach(([key, id]) => {
+        const value = document.getElementById(id).value;
+        conditions[key] = ["captions", "urgent"].includes(key) ? value === "yes" : ["profile", "scope", "photos"].includes(key) ? value : value === "" ? NaN : Number(value);
+      });
+      briefEstimate = JoshBrief.estimate(conditions);
+      const out = briefEstimate;
+      document.getElementById("briefStatus").textContent = out.error || "사용료 0원 · 대화 사례 기반 규칙 계산 · 영상 분석 미실행";
+      document.getElementById("copyBriefReplyButton").disabled = Boolean(out.error);
+      document.getElementById("saveBriefButton").disabled = Boolean(out.error);
+      if (out.error) {
+        document.getElementById("briefPrice").textContent = "입력 확인 필요";
+        ["briefRange", "briefFloor", "briefHours", "briefDays", "briefCosts", "briefMonthlyTotal", "briefCapacity", "briefReply"].forEach(id => {
+          const el = document.getElementById(id); if (el.tagName === "TEXTAREA") el.value = ""; else el.textContent = "";
+        });
+        return;
+      }
+      document.getElementById("briefPrice").textContent = formatKrw(out.recommended);
+      document.getElementById("briefRange").textContent = `작업량 변동 시 ${formatKrwRange(out.recommended, out.high)} · 최종본 분당 약 ${formatKrw(out.unitMinute)} · 공제 전 금액`;
+      document.getElementById("briefFloor").textContent = formatKrw(out.floor);
+      document.getElementById("briefHours").textContent = `${out.lowHours}~${out.highHours}시간`;
+      document.getElementById("briefDays").textContent = `${out.lowDays}~${out.highDays}일 · 하루 ${out.daily}시간`;
+      document.getElementById("briefCosts").innerHTML = out.items.map(item => `<div class="brief-cost"><span>${escapeHtml(item.name)}</span><b>${formatKrw(item.amount)}</b></div>`).join("");
+      document.getElementById("briefMonthlyTotal").textContent = `월 ${out.monthly}편 단순 합계 ${formatKrw(out.monthlyTotal)} · 자동 할인 없음`;
+      const monthlyHours = out.highHours * out.monthly;
+      const available = numberValue("monthlyHours") || 65;
+      document.getElementById("briefCapacity").textContent = `긴 작업시간 기준 시간당 약 ${formatKrw(out.effectiveHourly)} · 월 예상 ${monthlyHours}시간 / 설정된 가용 ${available}시간${monthlyHours > available ? " · 가용시간 초과" : ""}. 다른 작업·휴일·피드백 대기는 작업일에 별도 추가됩니다.`;
+      const edits = briefConditions.edited || [];
+      const label = key => document.getElementById(briefFields[key]).parentElement.firstChild.textContent.trim();
+      const assumptions = [...out.assumptions, ...edits.map(key => `${label(key)}: 직접 수정값 우선`)];
+      const list = (id, items) => { document.getElementById(id).innerHTML = items.map(text => `<li>${escapeHtml(text)}</li>`).join(""); };
+      list("briefAssumptions", assumptions.length ? assumptions : ["입력된 조건 기준 · 실제 원본 확인 전 가견적"]);
+      list("briefQuestions", out.questions.filter(q => !(edits.includes("cameras") && q.includes("카메라")) && !(edits.includes("raw") && q.includes("재생시간")) && !(edits.includes("minutes") && q.includes("완성본 길이"))));
+      document.getElementById("briefReply").value = JoshBrief.reply(out);
+      document.getElementById("briefActionStatus").textContent = "";
+      briefStorageWrite(BRIEF_DRAFT_KEY, { text: document.getElementById("quickQuoteText").value, conditions: { ...conditions, edited: edits } });
+    }
+    function runBriefConsultation() {
+      const text = document.getElementById("quickQuoteText").value.trim();
+      const parsed = JoshBrief.parse(text);
+      if (!text || !parsed.hasConditions) {
+        document.getElementById("briefOutput").hidden = true;
+        briefConditions = null;
+        document.getElementById("briefStatus").textContent = "작업 조건이 필요해요. 영상 종류와 최종 길이부터 적어 주세요. 링크만으로 영상을 분석하지 않습니다.";
+        return;
+      }
+      briefConditions = parsed;
+      document.getElementById("quickQuoteResult").hidden = true;
+      document.getElementById("briefHistory").hidden = true;
+      document.getElementById("briefHistoryButton").setAttribute("aria-expanded", "false");
+      fillBriefFields(parsed);
+      saveQuickQuoteText();
+      document.getElementById("briefOutput").hidden = false;
+      updateBriefEstimate();
+      document.getElementById("briefOutput").focus({ preventScroll: true });
+      document.getElementById("briefOutput").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    function renderBriefHistory() {
+      const stored = briefStorageRead(BRIEF_HISTORY_KEY, []);
+      const history = Array.isArray(stored) ? stored.slice(0, 15) : [];
+      const list = document.getElementById("briefHistory");
+      list.replaceChildren();
+      if (!history.length) list.textContent = "이 기기에 저장된 상담이 없습니다.";
+      history.forEach(item => {
+        if (!item || !validBriefConditions(item.conditions)) return;
+        const button = document.createElement("button");
+        button.type = "button"; button.className = "button";
+        button.textContent = `${new Date(item.date).toLocaleDateString("ko-KR")} · ${String(item.text).replace(/https?:\/\/\S+/g, "").slice(0, 55)} · ${formatKrw(item.price)}`;
+        button.addEventListener("click", () => {
+          document.getElementById("quickQuoteText").value = item.text;
+          briefConditions = item.conditions;
+          fillBriefFields(briefConditions);
+          saveQuickQuoteText();
+          document.getElementById("briefOutput").hidden = false;
+          updateBriefEstimate();
+          if (typeof item.reply === "string") document.getElementById("briefReply").value = item.reply;
+          document.getElementById("briefOutput").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        list.append(button);
+      });
+    }
+    function initBriefAdvisor() {
+      document.getElementById("consultQuoteButton").addEventListener("click", runBriefConsultation);
+      Object.entries(briefFields).forEach(([key, id]) => document.getElementById(id).addEventListener("input", () => {
+        if (!briefConditions) return;
+        briefConditions.edited = [...new Set([...(briefConditions.edited || []), key])];
+        updateBriefEstimate();
+      }));
+      document.getElementById("quickQuoteText").addEventListener("input", () => {
+        document.getElementById("briefOutput").hidden = true;
+        document.getElementById("briefStatus").textContent = "문의가 변경됐어요. 무료 견적 받기를 눌러 다시 계산해 주세요.";
+      });
+      const examples = {
+        fashion: "패션영상입니다. 최종본 5~7분, 1캠, 원본 20분. 설명 시 사진 삽입, 사진은 100%는 아니지만 찾아서 드릴 예정입니다. 수정 1회.",
+        documentary: "다큐형식 롱폼, 캠 1개, 최종본 15분 내외. 원본 평균 90분. 장면 선별부터 스토리 구성, 자막과 현장음 정리. 수정 1회. 작업 물량은 계속 많아질 예정입니다!",
+        shortform: "설명형 숏폼 최종본 60초, 1캠, 원본 10분, 월 10편. 기본 자막, 수정 2회. 사진 없음."
+      };
+      document.querySelectorAll("[data-brief-example]").forEach(button => button.addEventListener("click", () => {
+        document.getElementById("quickQuoteText").value = examples[button.dataset.briefExample]; runBriefConsultation();
+      }));
+      document.getElementById("copyBriefReplyButton").addEventListener("click", async () => {
+        const el = document.getElementById("briefReply");
+        const copied = await copyTextWithFallback(el.value, el);
+        document.getElementById("briefActionStatus").textContent = copied ? "답장을 복사했습니다." : "복사가 제한되어 답장을 선택했습니다. 길게 눌러 복사해 주세요.";
+      });
+      document.getElementById("saveBriefButton").addEventListener("click", () => {
+        if (!briefEstimate || briefEstimate.error) return;
+        const previous = briefStorageRead(BRIEF_HISTORY_KEY, []);
+        const history = Array.isArray(previous) ? previous : [];
+        const item = { date: new Date().toISOString(), text: document.getElementById("quickQuoteText").value, conditions: { ...briefEstimate, edited: briefConditions.edited || [] }, price: briefEstimate.recommended, reply: document.getElementById("briefReply").value };
+        const saved = briefStorageWrite(BRIEF_HISTORY_KEY, [item, ...history].slice(0, 15));
+        document.getElementById("briefActionStatus").textContent = saved ? "최근 상담에 저장했습니다. 이 기기에서만 보관됩니다." : "기기 저장 공간에 접근할 수 없습니다. 답장을 복사해 주세요.";
+        renderBriefHistory();
+      });
+      document.getElementById("briefHistoryButton").addEventListener("click", event => {
+        const panel = document.getElementById("briefHistory"); panel.hidden = !panel.hidden;
+        event.currentTarget.setAttribute("aria-expanded", String(!panel.hidden)); renderBriefHistory();
+      });
+      restoreBriefDraft();
+    }
+
     function saveQuickQuoteText() {
       try {
         localStorage.setItem(
@@ -5654,6 +5899,7 @@
     }
 
     function renderQuickQuoteResult(applied, warnings) {
+      document.getElementById("quickQuoteResult").hidden = false;
       const chips = document.getElementById("quickQuoteChips");
       lastParsedQuoteLabels = [...applied];
       const mode = document.getElementById("quoteMode").value;
@@ -5676,6 +5922,7 @@
     }
 
     function parseQuickQuoteText() {
+      document.getElementById("briefOutput").hidden = true;
       const input = document.getElementById("quickQuoteText");
       const text = input.value.trim();
       if (!text) {
@@ -6983,6 +7230,8 @@
         schedules: structuredClone(schedules),
         quoteMeta: structuredClone(quoteMetaState),
         quickQuoteText: document.getElementById("quickQuoteText").value,
+        briefDraft: briefStorageRead(BRIEF_DRAFT_KEY, null),
+        briefHistory: briefStorageRead(BRIEF_HISTORY_KEY, []),
         savedQuotes: localStorage.getItem(SAVED_QUOTES_STORAGE_KEY),
         profit: localStorage.getItem(PROFIT_STORAGE_KEY),
         reference: referenceAnalysisState ? structuredClone(referenceAnalysisState) : null
@@ -7007,6 +7256,10 @@
       quoteMetaState = structuredClone(snapshot.quoteMeta);
       referenceAnalysisState = snapshot.reference ? structuredClone(snapshot.reference) : null;
       document.getElementById("quickQuoteText").value = snapshot.quickQuoteText || "";
+      briefStorageWrite(BRIEF_DRAFT_KEY, snapshot.briefDraft || null);
+      briefStorageWrite(BRIEF_HISTORY_KEY, snapshot.briefHistory || []);
+      restoreBriefDraft();
+      renderBriefHistory();
       if (snapshot.savedQuotes === null) localStorage.removeItem(SAVED_QUOTES_STORAGE_KEY);
       else localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, snapshot.savedQuotes);
       if (snapshot.profit === null) localStorage.removeItem(PROFIT_STORAGE_KEY);
@@ -7058,7 +7311,9 @@
         services,
         schedules,
         quoteMeta: quoteMetaState,
-        savedQuotes: readSavedQuotes()
+        savedQuotes: readSavedQuotes(),
+        briefDraft: briefStorageRead(BRIEF_DRAFT_KEY, null),
+        briefHistory: briefStorageRead(BRIEF_HISTORY_KEY, [])
       };
       const text = JSON.stringify(payload);
       try {
@@ -7136,6 +7391,15 @@
       if (Array.isArray(parsed.savedQuotes)) {
         localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, JSON.stringify(parsed.savedQuotes.slice(0, 20)));
         renderSavedQuotes();
+      }
+      if (Array.isArray(parsed.briefHistory)) {
+        briefStorageWrite(BRIEF_HISTORY_KEY, parsed.briefHistory.filter(item => item && validBriefConditions(item.conditions)).slice(0, 15));
+        renderBriefHistory();
+      }
+      if (parsed.briefDraft && typeof parsed.briefDraft.text === "string" && validBriefConditions(parsed.briefDraft.conditions)) {
+        briefStorageWrite(BRIEF_DRAFT_KEY, parsed.briefDraft);
+        document.getElementById("quickQuoteText").value = parsed.briefDraft.text;
+        saveQuickQuoteText(); restoreBriefDraft();
       }
       saveState();
       renderServices();
@@ -8017,8 +8281,10 @@
         ...(referenceAnalysisState
           ? [
               "",
-              referenceAnalysisState.sourceType === "ai-link"
-                ? "레퍼런스 공개 대표 장면 AI 판독"
+              referenceAnalysisState.sourceType === "ai-video"
+                ? "레퍼런스 공개 YouTube 실제 영상 AI 판독"
+                : referenceAnalysisState.sourceType === "ai-link"
+                  ? "레퍼런스 공개 대표 장면 AI 판독"
                 : referenceAnalysisState.sourceType?.startsWith("frame-")
                   ? "레퍼런스 프레임 기기 판독"
                   : "레퍼런스 기본 분석",
@@ -8040,6 +8306,8 @@
                     `AI 분석 방식: ${
                       referenceAnalysisState.analysisMode === "chatgpt-subscription"
                         ? "ChatGPT 구독 · 수동 반영"
+                        : referenceAnalysisState.analysisMode === "ai-video"
+                          ? "Gemini 실제 영상 · 자동 반영"
                         : referenceAnalysisState.analysisMode === "ai"
                           ? "OpenAI API · 자동 반영"
                           : "기기 수치 분석만"
@@ -8071,6 +8339,10 @@
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(PROFIT_STORAGE_KEY);
       localStorage.removeItem(QUICK_QUOTE_STORAGE_KEY);
+      localStorage.removeItem(BRIEF_DRAFT_KEY);
+      localStorage.removeItem(BRIEF_HISTORY_KEY);
+      restoreBriefDraft();
+      renderBriefHistory();
       localStorage.removeItem(QUOTE_META_STORAGE_KEY);
       localStorage.removeItem(SAVED_QUOTES_STORAGE_KEY);
       services = structuredClone(servicesSeed);
@@ -8147,10 +8419,13 @@
       const keepSchedules = structuredClone(schedules);
       const keepProfit = localStorage.getItem(PROFIT_STORAGE_KEY);
       const keepSavedQuotes = localStorage.getItem(SAVED_QUOTES_STORAGE_KEY);
+      const keepBriefHistory = briefStorageRead(BRIEF_HISTORY_KEY, []);
       const keepReference = scope === "quote" ? referenceAnalysisState : null;
       performFullReset();
 
       if (scope !== "all") {
+        briefStorageWrite(BRIEF_HISTORY_KEY, keepBriefHistory);
+        renderBriefHistory();
         services = keepServices;
         if (keepProfit) localStorage.setItem(PROFIT_STORAGE_KEY, keepProfit);
         if (keepSavedQuotes) localStorage.setItem(SAVED_QUOTES_STORAGE_KEY, keepSavedQuotes);
@@ -8331,7 +8606,7 @@
       document.getElementById("quickQuoteText").addEventListener("keydown", (event) => {
         if (event.key !== "Enter" || (!event.ctrlKey && !event.metaKey)) return;
         event.preventDefault();
-        parseQuickQuoteText();
+        runBriefConsultation();
       });
       document.getElementById("analyzeReferenceButton").addEventListener("click", analyzeReference);
       document.getElementById("referenceUrl").addEventListener("keydown", (event) => {
@@ -8510,6 +8785,7 @@
         button.addEventListener("click", () => {
           document.querySelectorAll("[data-mobile-target]").forEach((item) => item.classList.toggle("is-active", item === button));
           const targetMap = { quick: "quickQuotePanel", reference: "referenceUrl", adjust: "settingsPanel", result: "summaryPanel" };
+          if (briefEstimate && !briefEstimate.error && !document.getElementById("briefOutput").hidden) targetMap.result = "briefOutput";
           setWorkspace("quote");
           const target = document.getElementById(targetMap[button.dataset.mobileTarget]);
           target?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -8560,6 +8836,7 @@
       document.getElementById("signOutButton").addEventListener("click", signOut);
       updateReferenceAnalysisMode();
       calculate();
+      initBriefAdvisor();
       initializeAuth();
     }
 
@@ -8571,12 +8848,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-

@@ -1,7 +1,8 @@
-const CACHE_NAME = "josh-cache-v23";
+const CACHE_NAME = "josh-cache-v24";
 const ASSETS = [
   "./",
   "./index.html",
+  "./brief-quote.js",
   "./manifest.webmanifest",
   "./icon.svg"
 ];

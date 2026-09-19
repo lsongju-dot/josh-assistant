@@ -55,6 +55,7 @@ let browserInstance;
   browserInstance = browser;
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
+  await page.clock.setFixedTime(new Date("2026-08-20T10:00:00+09:00"));
   page.setDefaultTimeout(10_000);
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -93,10 +94,9 @@ let browserInstance;
                       cameraReason: "정면과 측면 구도가 반복됩니다.",
                       editingPace: "fast"
                     },
-                    frames: [0, 1, 2, 3].map((index) => ({
-                      image: "https://i.ytimg.com/vi/K36Et8h552w/" + index + ".jpg",
-                      label: "대표 장면 " + (index + 1)
-                    }))
+                    frames: [],
+                    sourceMode: "youtube-public-video-gemini",
+                    model: "gemini-3.7-flash"
                   },
                   error: null
                 };
@@ -308,12 +308,12 @@ let browserInstance;
   check((await page.textContent("#headerAuthButton")).includes("연결됨"), "header shows authentication state");
   await page.evaluate(() => { document.getElementById("useAiFrameAnalysis").checked = true; updateReferenceAnalysisMode(); });
   await page.click("#analyzeReferenceButton");
-  await page.waitForFunction(() => document.getElementById("copyState").textContent.includes("AI가 공개 대표 장면"));
+  await page.waitForFunction(() => document.getElementById("copyState").textContent.includes("Gemini가 공개 YouTube 실제 영상을 분석"));
   const invokeBodies = await page.evaluate(() => window.__invokeBodies);
   check(invokeBodies.length === 1, "AI link function invoked once");
-  check(Object.keys(invokeBodies[0]).sort().join(",") === "title,url", "AI payload contains only public URL and title");
-  check(await page.locator("#referenceFrameGrid figure").count() === 4, "AI representative frames rendered");
-  check((await page.textContent("#referenceReason")).includes("AI 대표 장면 판독"), "AI analysis rendered");
+  check(Object.keys(invokeBodies[0]).sort().join(",") === "provider,title,url", "AI payload selects Gemini public video analysis");
+  check(await page.locator("#referenceFrameGrid figure").count() === 0, "AI video analysis does not invent representative frames");
+  check((await page.textContent("#referenceReason")).includes("실제 영상 AI 판독"), "AI video analysis rendered");
   check((await page.textContent("#referenceContentType")).includes("숏폼"), "AI content type rendered");
   check((await page.textContent("#referenceCameraCount")).includes("2캠"), "AI camera estimate rendered");
   check(await page.inputValue("#shortformCameras") !== "2", "AI camera estimate does not silently apply");

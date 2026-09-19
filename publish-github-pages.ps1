@@ -22,7 +22,7 @@ if (-not (Test-Path .git) -or -not (Get-ChildItem .git -Force -ErrorAction Silen
   git init
 }
 
-git add index.html manifest.webmanifest sw.js icon.svg .nojekyll README.md publish-github-pages.ps1
+git add index.html brief-quote.js manifest.webmanifest sw.js icon.svg .nojekyll README.md publish-github-pages.ps1
 git commit -m "Publish Josh assistant app" 2>$null
 
 $repoExists = $true
