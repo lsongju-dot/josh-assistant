@@ -72,3 +72,27 @@ assert.equal(shorts.minutes, 0.8);
 assert.ok(q.estimate({ ...normal, intensity: 0.9 }).error);
 assert.equal(q.referenceIntensity({ difficulty: 'basic', workFactors: {} }), 0);
 console.log('PASS reference video analysis fills open conditions without overriding the inquiry');
+const cooking = parse(`롱폼제작이구요 유튜브가 처음이라 영상 촬영을 아직 잘 못하다보니까
+영상이 dslr, 핸드폰, 오즈모
+이렇게 3개 영상이구요
+메인소리는 오즈모에 담겨있습니다
+촬영시간은 2시간 이내이구요
+영상은 동시에 시작은 아니고 각  카메라로 시작부분 끝부분이 조금씩다르긴합니다
+그래서 총 영상은 3분~5분 정도 예상입니다
+유튜브 '임대표의 식탁' 검색해보시면 최근영상 편집한거 있습니다
+인트로+요리순서+중간중간 재밋는부분+소리+색감+자막+화면효과+가끔 드립 자막+bgm+효과음`);
+assert.equal(cooking.cameras, 3);
+assert.equal(cooking.raw, 120);
+assert.equal(cooking.minutes, 5);
+assert.equal(cooking.sync, true);
+assert.equal(cooking.intensity, 0.2);
+assert.equal(cooking.channelQuery, '임대표의 식탁');
+assert.ok(!cooking.questions.some(t => t.includes('카메라')));
+const cookingQuote = q.estimate(cooking);
+assert.ok(cookingQuote.items.some(i => i.name === '멀티캠 싱크·오디오 정리' && i.amount === 30000));
+assert.equal(cookingQuote.recommended, 300000);
+assert.ok(q.reply(cookingQuote).includes('3캠 싱크 정리와 수정'));
+assert.equal(parse('핸드폰으로 촬영한 영상 최종본 5분').cameras, 1);
+assert.ok(parse('핸드폰으로 촬영한 영상 최종본 5분').questions.some(t => t.includes('카메라')));
+assert.equal(q.applyReference(cooking, { mode: 'channel', analysis: { summary: 'x', workFactors: {} } }).intensity, 0.2);
+console.log('PASS camera devices, shoot length, sync, requested extras and channel names are read from the inquiry');
