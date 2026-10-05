@@ -84,6 +84,29 @@ const { chromium } = require('C:/Users/송주/.cache/codex-runtimes/codex-primar
     await page.evaluate(b => applyBackupPayload(b), backup);
     assert.equal(await page.locator('#briefOutput').isVisible(), true);
     assert.equal(await page.evaluate(() => briefStorageRead(BRIEF_HISTORY_KEY, []).length), historyCount);
+    await page.evaluate(() => {
+      authSession = { user: { id: 'test-user' } };
+      window.fetchReferenceMetadata = async () => ({ title: '인터뷰 레퍼런스', thumbnail: '' });
+      window.requestAiLinkAnalysis = async () => ({
+        analysis: { summary: '정면·측면 2캠 인터뷰', estimatedCameraCount: 2, cameraConfidence: 0.82, contentType: 'longform', editingPace: 'fast',
+          workFactors: { cutDensity: 'high', pointTypography: 'high', soundEffects: 'high', broll: 'high', motionGraphics: 'medium' } },
+        difficulty: 'high', durationSeconds: 754, channel: null, videoCount: 1, frames: []
+      });
+    });
+    await page.locator('#quickQuoteText').fill('https://youtu.be/OwwSfFs7E-0');
+    await page.locator('#consultQuoteButton').click();
+    await page.waitForFunction(() => document.getElementById('briefCameras').value === '2', null, { timeout: 5000 });
+    assert.equal(await page.locator('#briefMinutes').inputValue(), '12.5');
+    assert.equal(await page.locator('#briefIntensity').inputValue(), '0.2');
+    assert.match(await page.locator('#briefStatus').textContent(), /레퍼런스 영상 분석 반영/);
+    assert.match(await page.locator('#briefReply').inputValue(), /레퍼런스 영상을 확인해 2캠/);
+    await page.locator('#quickQuoteText').fill('1캠 최종본 10분 원본 30분 https://www.youtube.com/@josh');
+    await page.locator('#consultQuoteButton').click();
+    await page.waitForFunction(() => document.getElementById('briefIntensity').value === '0.2', null, { timeout: 5000 });
+    assert.equal(await page.locator('#briefCameras').inputValue(), '1');
+    assert.equal(await page.locator('#briefMinutes').inputValue(), '10');
+    await page.evaluate(() => { authSession = null; });
+    console.log('PASS reference video and channel links fill camera count, length and editing intensity');
     assert.deepEqual(errors, []);
     console.log('PASS live edits, validation, history, copy, fresh inquiries, backup, reset, undo, offline use and zero paid calls');
   } finally {

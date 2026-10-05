@@ -3,10 +3,9 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const edge = fs.readFileSync(
-  path.join(root, "supabase", "functions", "analyze-reference", "index.ts"),
-  "utf8"
-);
+const edge = ["index.ts", "reference.ts"]
+  .map((file) => fs.readFileSync(path.join(root, "supabase", "functions", "analyze-reference", file), "utf8"))
+  .join("\n");
 const worker = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 
 function check(condition, label) {
@@ -175,6 +174,11 @@ check(scripts[0].includes("pendingReferenceSuggestion") && scripts[0].includes("
 check(scripts[0].includes("applyReferenceEstimateToControls(analysis, contentType)"), "quick estimate passes keyword analysis to suggestions");
 check(scripts[0].includes('analysisMode: "metadata"') && scripts[0].includes("quickReferenceWorkFactors"), "quick estimate metadata mode is labeled and detailed");
 check(edge.includes("workFactors") && scripts[0].includes("referenceFactorLabels"), "AI work factors are itemized");
+check(edge.includes("youtubeChannelRef") && scripts[0].includes("extractYouTubeChannelRef"), "YouTube channel links are analyzed");
+check(edge.includes("GEMINI_FALLBACK_MODELS") && edge.includes("retryableStatus"), "Gemini busy errors retry with fallback models");
+check(edge.includes("/auth/v1/user"), "Edge Function verifies the signed-in user");
+check(!/advanced-only[^>]*>\s*<summary>분석 방법/.test(html) && /id="useAiFrameAnalysis" type="checkbox" checked/.test(html), "AI video analysis toggle is visible and on by default");
+check(scripts[0].includes("JoshBrief.applyReference") && html.includes('id="briefIntensity"'), "consultation quote applies reference analysis");
 check(html.includes("grid-template-columns: repeat(7, minmax(0, 1fr));"), "mobile calendar keeps seven columns");
 check(/josh-cache-v\d+/.test(worker), "service worker cache has a version");
 
