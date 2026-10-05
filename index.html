@@ -2539,7 +2539,7 @@
             <div class="quick-quote-input">
               <label for="quickQuoteText">고객 문의 또는 작업 조건</label>
               <textarea id="quickQuoteText" placeholder="예: 원본 40분을 최종 10분 내외로 편집, 3캠, 컷편 포함 종편, 전체 자막과 기본 색보정, 수정 2회, 일주일 납기, 예상 작업 10시간"></textarea>
-              <small class="field-note">입력은 이 기기에 저장됩니다. 링크의 영상 내용은 자동 판독하지 않습니다.</small>
+              <small class="field-note">입력은 이 기기에 저장됩니다. 로그인 상태에서 YouTube 영상·채널 링크를 넣으면 캠 수와 편집 강도를 영상 분석으로 채웁니다.</small>
               <div class="quick-quote-actions">
                 <button class="button primary" id="consultQuoteButton" type="button">무료 견적 받기</button>
                 <button class="button" id="briefHistoryButton" type="button" aria-expanded="false" aria-controls="briefHistory">최근 상담</button>
@@ -2582,6 +2582,7 @@
                 <label>하루 집중 가능 (시간)<input id="briefDaily" type="number" min="0.5" max="12" step="0.5"></label>
                 <label>최소 희망 시급 (원)<input id="briefHourly" type="number" min="1000" max="200000" step="1000"></label>
                 <label>납기 조건<select id="briefUrgent"><option value="no">일반</option><option value="yes">급행 +30%</option></select></label>
+                <label>편집 강도<select id="briefIntensity"><option value="0">기본</option><option value="0.1">보통 이상 +10%</option><option value="0.2">높음 +20%</option><option value="0.3">매우 높음 +30%</option></select></label>
               </div>
             </details>
             <div class="brief-columns">
@@ -3084,14 +3085,13 @@
               <progress id="frameAnalysisProgressBar" max="100" value="0"></progress>
               <span id="frameAnalysisStatus">준비 중</span>
             </div>
-            <details class="reference-advanced advanced-only">
-              <summary>분석 방법 선택</summary>
+            <div class="reference-advanced">
               <label class="reference-ai-option" for="useAiFrameAnalysis">
-                <input id="useAiFrameAnalysis" type="checkbox">
-                모바일 실제 영상 AI 분석 · Gemini 무료 한도
+                <input id="useAiFrameAnalysis" type="checkbox" checked>
+                실제 영상 AI 분석 · 로그인 필요 · Gemini 무료 한도
               </label>
-              <small class="field-note" id="referenceModeNote">빠른 추정은 제목과 링크만 사용합니다. 실제 영상 AI 분석을 켜면 PC 없이 공개 YouTube 영상 전체를 서버에서 확인합니다.</small>
-            </details>
+              <small class="field-note" id="referenceModeNote">공개 YouTube 영상이나 채널 링크를 Gemini가 서버에서 확인해 캠 수와 편집 강도를 추정합니다.</small>
+            </div>
             <video id="referenceVideo" muted playsinline preload="metadata" hidden></video>
             <canvas id="referenceFrameCanvas" hidden></canvas>
             <div class="reference-result" id="referenceResult" hidden>
@@ -4361,6 +4361,16 @@
       return ["shorts", "embed", "live"].includes(parts[0]) ? parts[1] || "" : "";
     }
 
+    function extractYouTubeChannelRef(url) {
+      const host = url.hostname.replace(/^www\./, "");
+      if (host !== "youtube.com" && !host.endsWith(".youtube.com")) return "";
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (parts[0]?.startsWith("@") && parts[0].length > 1) return parts[0];
+      if (parts[0] === "channel" && /^UC[A-Za-z0-9_-]{22}$/.test(parts[1] || "")) return parts[1];
+      if (["c", "user"].includes(parts[0]) && parts[1]) return parts[1];
+      return "";
+    }
+
     function referencePlatform(url) {
       const host = url.hostname.replace(/^www\./, "");
       if (host === "youtu.be" || host.endsWith("youtube.com")) return "YouTube";
@@ -5171,7 +5181,13 @@
         analysis,
         frames,
         sourceMode: String(data?.sourceMode || "youtube-public-video-gemini"),
-        model: String(data?.model || "")
+        model: String(data?.model || ""),
+        difficulty: ["basic", "medium", "high"].includes(data?.analysis?.difficulty) ? data.analysis.difficulty : "medium",
+        durationSeconds: Number(data?.durationSeconds) > 0 ? Number(data.durationSeconds) : null,
+        channel: data?.channel && typeof data.channel === "object"
+          ? { id: String(data.channel.id || ""), title: String(data.channel.title || "") }
+          : null,
+        videoCount: Array.isArray(data?.videos) ? data.videos.length : 1
       };
     }
 
@@ -5451,13 +5467,15 @@
     }
 
     function updateReferenceAnalysisMode() {
-      const useAi = document.getElementById("useAiFrameAnalysis").checked;
+      const useAi = document.getElementById("useAiFrameAnalysis").checked && Boolean(authSession);
       const button = document.getElementById("analyzeReferenceButton");
       const note = document.getElementById("referenceModeNote");
       button.textContent = useAi ? "실제 영상 AI 분석" : "빠른 추정";
       button.classList.toggle("primary", useAi);
-      note.textContent = useAi
-        ? "공개 YouTube 실제 영상을 Gemini가 서버에서 분석합니다. PC가 필요 없고, 계정의 무료 한도 안에서만 실행됩니다. 비공개·일부공개 영상은 지원하지 않습니다."
+      note.textContent = !authSession && document.getElementById("useAiFrameAnalysis").checked
+        ? "로그인하면 공개 YouTube 영상·채널을 실제로 분석합니다. 지금은 제목과 링크만 쓰는 빠른 추정으로 계산합니다."
+        : useAi
+        ? "공개 YouTube 영상이나 채널(최근 영상 3개)을 Gemini가 서버에서 분석합니다. 로그인이 필요하고 계정의 무료 한도 안에서만 실행됩니다. 비공개·일부공개 영상은 지원하지 않습니다."
         : "제목과 링크만 사용하는 무료 빠른 추정입니다. 영상 파일은 외부 전송 없이 화면 복잡도만 판독합니다.";
     }
 
@@ -5491,7 +5509,7 @@
       inputStatus.className = "reference-status";
       inputStatus.textContent = "링크를 확인하고 있습니다.";
 
-      const useAiLinkAnalysis = document.getElementById("useAiFrameAnalysis").checked;
+      const useAiLinkAnalysis = document.getElementById("useAiFrameAnalysis").checked && Boolean(authSession);
       button.disabled = true;
       button.textContent = useAiLinkAnalysis ? "AI 시각 분석 중" : "분석 중";
       document.getElementById("copyState").textContent = useAiLinkAnalysis
@@ -5514,7 +5532,7 @@
           inputStatus.textContent = "이 사이트는 제목 기반 빠른 추정만 지원합니다. 실제 영상 확인은 파일 또는 ChatGPT 수동 분석을 사용하세요.";
         }
         let aiFailure = "";
-        if (useAiLinkAnalysis && extractYouTubeVideoId(url)) {
+        if (useAiLinkAnalysis && (extractYouTubeVideoId(url) || extractYouTubeChannelRef(url))) {
           try {
             const aiResult = await requestAiLinkAnalysis(url.href, metadata.title);
             const analysis = aiResult.analysis;
@@ -5525,7 +5543,7 @@
               url: url.href,
               sourceLabel: url.href,
               platform,
-              title: metadata.title,
+              title: aiResult.channel?.title ? `${aiResult.channel.title} 채널 최근 영상 ${aiResult.videoCount}개` : metadata.title,
               thumbnail: aiResult.frames[0]?.image || metadata.thumbnail,
               frames: aiResult.frames,
               analysisMode: "ai-video",
@@ -5549,7 +5567,7 @@
             aiFailure = error.message || "AI 링크 분석을 사용할 수 없습니다.";
           }
         } else if (useAiLinkAnalysis) {
-          aiFailure = "AI 자동 링크 분석은 현재 YouTube 공개 링크만 지원합니다.";
+          aiFailure = "AI 자동 링크 분석은 현재 YouTube 공개 영상·채널 링크만 지원합니다.";
         }
 
         const keywordAnalysis = referenceKeywordAnalysis(
@@ -5729,7 +5747,9 @@
     const BRIEF_HISTORY_KEY = "josh-free-brief-history-v1";
     let briefConditions = null;
     let briefEstimate = null;
-    const briefFields = { profile: "briefProfile", minutes: "briefMinutes", raw: "briefRaw", cameras: "briefCameras", scope: "briefScope", photos: "briefPhotos", captions: "briefCaptions", revisions: "briefRevisions", monthly: "briefMonthly", daily: "briefDaily", hourly: "briefHourly", urgent: "briefUrgent" };
+    const briefFields = { profile: "briefProfile", minutes: "briefMinutes", raw: "briefRaw", cameras: "briefCameras", scope: "briefScope", photos: "briefPhotos", captions: "briefCaptions", revisions: "briefRevisions", monthly: "briefMonthly", daily: "briefDaily", hourly: "briefHourly", urgent: "briefUrgent", intensity: "briefIntensity" };
+    let briefReferenceNote = "";
+    let briefReferenceToken = 0;
     function briefStorageRead(key, fallback) {
       try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; }
     }
@@ -5752,19 +5772,25 @@
     }
     function fillBriefFields(conditions) {
       Object.entries(briefFields).forEach(([key, id]) => {
-        document.getElementById(id).value = typeof conditions[key] === "boolean" ? (conditions[key] ? "yes" : "no") : String(conditions[key]);
+        const value = conditions[key] ?? (key === "intensity" ? 0 : "");
+        document.getElementById(id).value = typeof value === "boolean" ? (value ? "yes" : "no") : String(value);
       });
     }
-    function updateBriefEstimate() {
-      if (!briefConditions) return;
+    function currentBriefConditions() {
       const conditions = { ...briefConditions };
       Object.entries(briefFields).forEach(([key, id]) => {
         const value = document.getElementById(id).value;
         conditions[key] = ["captions", "urgent"].includes(key) ? value === "yes" : ["profile", "scope", "photos"].includes(key) ? value : value === "" ? NaN : Number(value);
       });
+      return conditions;
+    }
+    function updateBriefEstimate() {
+      if (!briefConditions) return;
+      const conditions = currentBriefConditions();
       briefEstimate = JoshBrief.estimate(conditions);
       const out = briefEstimate;
-      document.getElementById("briefStatus").textContent = out.error || "사용료 0원 · 대화 사례 기반 규칙 계산 · 영상 분석 미실행";
+      document.getElementById("briefStatus").textContent = out.error || briefReferenceNote ||
+        (conditions.reference ? "사용료 0원 · 규칙 계산 + 레퍼런스 영상 분석 반영" : "사용료 0원 · 대화 사례 기반 규칙 계산 · 영상 분석 미실행");
       document.getElementById("copyBriefReplyButton").disabled = Boolean(out.error);
       document.getElementById("saveBriefButton").disabled = Boolean(out.error);
       if (out.error) {
@@ -5794,13 +5820,56 @@
       document.getElementById("briefActionStatus").textContent = "";
       briefStorageWrite(BRIEF_DRAFT_KEY, { text: document.getElementById("quickQuoteText").value, conditions: { ...conditions, edited: edits } });
     }
+    function briefReferenceUrl(links) {
+      for (const link of links || []) {
+        const url = normalizeReferenceUrl(link);
+        if (url && (extractYouTubeVideoId(url) || extractYouTubeChannelRef(url))) return url;
+      }
+      return null;
+    }
+    async function analyzeBriefReference(url, token) {
+      if (!authSession) {
+        briefReferenceNote = "사용료 0원 · 규칙 계산 · 로그인하면 링크 영상의 캠 수·편집 강도까지 자동 반영돼요.";
+        updateBriefEstimate();
+        return;
+      }
+      const isChannel = !extractYouTubeVideoId(url);
+      briefReferenceNote = isChannel
+        ? "레퍼런스 채널의 최근 영상 3개를 분석하고 있어요. 끝나면 캠 수와 편집 강도가 자동 반영돼요."
+        : "레퍼런스 영상을 분석하고 있어요. 끝나면 캠 수와 편집 강도가 자동 반영돼요.";
+      updateBriefEstimate();
+      try {
+        const metadata = await fetchReferenceMetadata(url);
+        const result = await requestAiLinkAnalysis(url.href, metadata.title);
+        if (token !== briefReferenceToken || !briefConditions) return;
+        briefConditions = JoshBrief.applyReference(currentBriefConditions(), {
+          mode: result.channel ? "channel" : "video",
+          title: result.channel?.title || metadata.title,
+          videoCount: result.videoCount,
+          analysis: { ...result.analysis, difficulty: result.difficulty },
+          durationSeconds: result.durationSeconds
+        });
+        fillBriefFields(briefConditions);
+        briefReferenceNote = "";
+        updateBriefEstimate();
+      } catch (error) {
+        if (token !== briefReferenceToken) return;
+        briefReferenceNote = `영상 분석 실패: ${error.message || "알 수 없는 오류"} 문의 내용만으로 계산했습니다.`;
+        updateBriefEstimate();
+      }
+    }
     function runBriefConsultation() {
       const text = document.getElementById("quickQuoteText").value.trim();
       const parsed = JoshBrief.parse(text);
-      if (!text || !parsed.hasConditions) {
+      const referenceUrl = briefReferenceUrl(parsed.links);
+      briefReferenceToken += 1;
+      briefReferenceNote = "";
+      if (!text || (!parsed.hasConditions && !(referenceUrl && authSession))) {
         document.getElementById("briefOutput").hidden = true;
         briefConditions = null;
-        document.getElementById("briefStatus").textContent = "작업 조건이 필요해요. 영상 종류와 최종 길이부터 적어 주세요. 링크만으로 영상을 분석하지 않습니다.";
+        document.getElementById("briefStatus").textContent = referenceUrl
+          ? "로그인하면 링크만으로도 영상을 분석해 견적을 낼 수 있어요. 아니면 영상 종류와 최종 길이를 적어 주세요."
+          : "작업 조건이 필요해요. 영상 종류와 최종 길이를 적거나 YouTube 레퍼런스 링크를 넣어 주세요.";
         return;
       }
       briefConditions = parsed;
@@ -5813,6 +5882,7 @@
       updateBriefEstimate();
       document.getElementById("briefOutput").focus({ preventScroll: true });
       document.getElementById("briefOutput").scrollIntoView({ behavior: "smooth", block: "start" });
+      if (referenceUrl) analyzeBriefReference(referenceUrl, briefReferenceToken);
     }
     function renderBriefHistory() {
       const stored = briefStorageRead(BRIEF_HISTORY_KEY, []);
@@ -5846,6 +5916,7 @@
         updateBriefEstimate();
       }));
       document.getElementById("quickQuoteText").addEventListener("input", () => {
+        briefReferenceToken += 1;
         document.getElementById("briefOutput").hidden = true;
         document.getElementById("briefStatus").textContent = "문의가 변경됐어요. 무료 견적 받기를 눌러 다시 계산해 주세요.";
       });
@@ -6317,6 +6388,7 @@
       document.getElementById("signedInAuth").hidden = !user;
       document.getElementById("authUserEmail").textContent = user?.email || "";
       headerAuth.textContent = user?.email ? `연결됨 · ${user.email}` : "로그인 필요";
+      updateReferenceAnalysisMode();
       headerAuth.classList.toggle("is-connected", Boolean(user));
       headerAuth.setAttribute("aria-label", user ? `${user.email} 계정 및 동기화 관리` : "로그인 및 동기화 설정 열기");
       if (!user) {
@@ -8393,7 +8465,7 @@
         "최종본 길이와 카메라 수가 있으면 가장 정확하게 계산됩니다.";
       document.getElementById("referenceVideoFile").value = "";
       document.getElementById("analyzeFramesButton").disabled = true;
-      document.getElementById("useAiFrameAnalysis").checked = false;
+      document.getElementById("useAiFrameAnalysis").checked = true;
       updateReferenceAnalysisMode();
       document.getElementById("frameAnalysisProgress").hidden = true;
       document.getElementById("frameAnalysisProgressBar").value = 0;
