@@ -128,14 +128,55 @@ export function normalizeAnalysis(value: unknown): Analysis | null {
 }
 
 // Keeps long references inside the free quota: the opening and a middle sample
-// are enough to judge camera setup and editing density.
+// are enough to judge camera setup and editing density. When the length is
+// unknown, only the opening five minutes are sent.
+export const OPENING_CLIP = { start_offset: "0s", end_offset: "300s" };
 export function videoClips(durationSeconds: number | null) {
-  if (!durationSeconds || durationSeconds <= 360) return [null];
+  if (durationSeconds === null) return [OPENING_CLIP];
+  if (durationSeconds <= 360) return [null];
   const middle = Math.floor(durationSeconds / 2);
   return [
     { start_offset: "0s", end_offset: "150s" },
     { start_offset: `${middle - 75}s`, end_offset: `${middle + 75}s` },
   ];
+}
+
+export function parseClockDuration(value: string) {
+  const parts = value.split(":").map(Number);
+  if (!parts.length || parts.some((part) => !Number.isFinite(part))) return null;
+  return parts.reduce((total, part) => total * 60 + part, 0) || null;
+}
+
+function decodeJsonString(value: string) {
+  try {
+    return JSON.parse(`"${value}"`) as string;
+  } catch {
+    return value;
+  }
+}
+
+// Reads recent uploads from a public channel tab without an API key.
+// Each upload is a lockupViewModel block holding the duration badge, id and title.
+export function parseChannelPage(html: string, isShort: boolean): (VideoInfo & { isShort: boolean })[] {
+  const videos = new Map<string, VideoInfo & { isShort: boolean }>();
+  for (const block of html.split('"lockupViewModel":{').slice(1)) {
+    const id = block.match(/"contentId":"([A-Za-z0-9_-]{11})"/)?.[1];
+    if (!id || videos.has(id)) continue;
+    const clock = block.match(/"text":"(\d{1,2}:\d{2}(?::\d{2})?)"/)?.[1];
+    const title = block.match(/"lockupMetadataViewModel":\{"title":\{"content":"((?:[^"\\]|\\.)*)"/)?.[1];
+    videos.set(id, {
+      id,
+      title: title ? decodeJsonString(title) : "",
+      durationSeconds: clock ? parseClockDuration(clock) : null,
+      isShort,
+    });
+  }
+  if (!videos.size) {
+    for (const match of html.matchAll(/"videoId":"([A-Za-z0-9_-]{11})"/g)) {
+      if (!videos.has(match[1])) videos.set(match[1], { id: match[1], title: "", durationSeconds: null, isShort });
+    }
+  }
+  return [...videos.values()].slice(0, 15);
 }
 
 export function parseIsoDuration(value: unknown) {

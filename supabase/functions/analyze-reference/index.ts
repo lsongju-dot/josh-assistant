@@ -10,6 +10,8 @@ import {
   pickChannelVideos,
   structuredSchema,
   type VideoInfo,
+  OPENING_CLIP,
+  parseChannelPage,
   videoClips,
   youtubeChannelRef,
   youtubeVideoId,
@@ -109,9 +111,14 @@ function geminiModels() {
 
 const retryableStatus = new Set([429, 500, 503, 504]);
 
-async function callGemini(key: string, model: string, video: VideoInfo, title: string) {
+async function callGemini(
+  key: string,
+  model: string,
+  video: VideoInfo,
+  title: string,
+  clips: ({ start_offset: string; end_offset: string } | null)[],
+) {
   const watchUrl = `https://www.youtube.com/watch?v=${video.id}`;
-  const clips = videoClips(video.durationSeconds);
   const parts: Record<string, unknown>[] = clips.map((clip) =>
     clip
       ? { file_data: { file_uri: watchUrl }, video_metadata: clip }
@@ -154,9 +161,15 @@ async function callGemini(key: string, model: string, video: VideoInfo, title: s
 
 async function analyzeVideoWithGemini(key: string, video: VideoInfo, title: string) {
   let lastFailure: Failure = { error: "Gemini 영상 분석에 실패했습니다.", status: 502 };
+  let clips = videoClips(video.durationSeconds);
   for (const model of geminiModels()) {
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const result = await callGemini(key, model, video, title);
+      let result = await callGemini(key, model, video, title, clips);
+      // A short video of unknown length can reject the five-minute opening clip.
+      if ("error" in result && result.status === 400 && clips[0] === OPENING_CLIP) {
+        clips = [null];
+        result = await callGemini(key, model, video, title, clips);
+      }
       if (!("error" in result)) return result;
       lastFailure = result;
       if (!retryableStatus.has(result.status)) return result;
@@ -228,8 +241,7 @@ async function resolveChannelWithApi(ref: ChannelRef) {
   };
 }
 
-// Without a Data API key: read recent upload ids from the public channel tabs.
-// Durations are not available here, so long videos are analyzed without clipping.
+// Without a Data API key: read recent uploads (id, title, length) from the public channel tabs.
 async function resolveChannelFromPage(ref: ChannelRef) {
   const base = ref.kind === "handle"
     ? ref.value
@@ -242,12 +254,9 @@ async function resolveChannelFromPage(ref: ChannelRef) {
     });
     return page.ok ? await page.text() : "";
   };
-  const pageVideos = (html: string, isShort: boolean) => [
-    ...new Set([...html.matchAll(/"videoId":"([A-Za-z0-9_-]{11})"/g)].map((match) => match[1])),
-  ].slice(0, 15).map((id) => ({ id, title: "", durationSeconds: null, isShort }));
   const videosPage = await read("videos");
-  let videos = pageVideos(videosPage, false);
-  if (!videos.length) videos = pageVideos(await read("shorts"), true);
+  let videos = parseChannelPage(videosPage, false);
+  if (!videos.length) videos = parseChannelPage(await read("shorts"), true);
   const channelId = videosPage.match(/"(?:externalId|channelId)":"(UC[A-Za-z0-9_-]{22})"/)?.[1] || "";
   const title = videosPage.match(/<meta property="og:title" content="([^"]*)"/)?.[1] || ref.value;
   return videos.length ? { id: channelId, title, videos } : null;

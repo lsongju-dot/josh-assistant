@@ -2,6 +2,7 @@ import {
   aggregateAnalyses,
   type Analysis,
   normalizeAnalysis,
+  parseChannelPage,
   parseIsoDuration,
   pickChannelVideos,
   videoClips,
@@ -55,7 +56,7 @@ Deno.test("clips long videos and parses durations", () => {
   assertEquals(parseIsoDuration("PT1H2M3S"), 3723, "iso duration");
   assertEquals(parseIsoDuration("PT45S"), 45, "seconds");
   assertEquals(videoClips(300), [null], "short video is analyzed whole");
-  assertEquals(videoClips(null), [null], "unknown duration is analyzed whole");
+  assertEquals(videoClips(null), [{ start_offset: "0s", end_offset: "300s" }], "unknown duration sends the opening");
   assertEquals(videoClips(1200), [
     { start_offset: "0s", end_offset: "150s" },
     { start_offset: "525s", end_offset: "675s" },
@@ -91,4 +92,20 @@ Deno.test("aggregates camera count by vote and factors by median", () => {
   assertEquals(result.difficulty, "medium", "median difficulty");
   assertEquals(result.contentType, "longform", "content type");
   assertEquals(result.cameraConfidence, 0.53, "camera confidence scaled by agreement");
+});
+
+Deno.test("reads recent uploads from a public channel page", () => {
+  const lockup = (id: string, clock: string, title: string) =>
+    `"lockupViewModel":{"contentImage":{"overlays":[{"badges":[{"text":"${clock}"}]}]},` +
+    `"metadata":{"lockupMetadataViewModel":{"title":{"content":"${title}"}}},"contentId":"${id}"}`;
+  const html = `<html>${lockup("pRrmQUm6Zvg", "10:06", "인터뷰 \\\"편집\\\"")}${lockup("wGA27zJEnaU", "1:02:03", "라이브")}</html>`;
+  assertEquals(parseChannelPage(html, false), [
+    { id: "pRrmQUm6Zvg", title: '인터뷰 "편집"', durationSeconds: 606, isShort: false },
+    { id: "wGA27zJEnaU", title: "라이브", durationSeconds: 3723, isShort: false },
+  ], "lockups");
+  assertEquals(
+    parseChannelPage('{"videoId":"OwwSfFs7E-0"}{"videoId":"OwwSfFs7E-0"}', true),
+    [{ id: "OwwSfFs7E-0", title: "", durationSeconds: null, isShort: true }],
+    "fallback ids",
+  );
 });

@@ -57,8 +57,9 @@ GitHub Pages 주소를 휴대폰 브라우저에서 연 뒤 홈 화면에 추가
 
 - 로그인하지 않으면 제목과 공개 정보만 쓰는 빠른 추정으로 동작하며 API 비용이 없습니다.
 - 로그인 상태에서 `실제 영상 AI 분석`(기본 켜짐)이면 공개 YouTube 영상을 Gemini가 서버에서 분석합니다.
-  6분이 넘는 영상은 앞부분 2분 30초와 중간 2분 30초만 낮은 해상도로 분석해 무료 한도를 아낍니다.
-- 채널 링크(`@핸들`, `/channel/`, `/c/`, `/user/`)는 최근 업로드 중 주된 형식(롱폼/숏폼)의 영상 3개를 분석해
+  6분이 넘는 영상은 앞부분 2분 30초와 중간 2분 30초만, 길이를 모르는 영상은 앞 5분만 낮은 해상도로 분석해 무료 한도를 아낍니다.
+- 채널 링크(`@핸들`, `/channel/`, `/c/`, `/user/`)는 채널 공개 페이지에서 최근 업로드의 제목·길이를 읽고(키 불필요),
+  주된 형식(롱폼/숏폼)의 영상 3개를 분석해
   캠 수는 다수결, 편집 항목은 중간값으로 합칩니다.
 - Gemini가 혼잡(429/503)하면 한 번 재시도한 뒤 대체 모델로 넘어갑니다.
 - 같은 영상은 30일 동안 `reference_analysis_cache` 테이블의 결과를 재사용합니다.
@@ -68,12 +69,12 @@ GitHub Pages 주소를 휴대폰 브라우저에서 연 뒤 홈 화면에 추가
 ```bash
 supabase db push                                   # reference_analysis_cache 테이블 생성
 supabase secrets set GEMINI_API_KEY=...            # 필수
-supabase secrets set YOUTUBE_API_KEY=...           # 권장: 채널 영상 목록·영상 길이 조회
+supabase secrets set YOUTUBE_API_KEY=...           # 선택: 없어도 채널 분석 동작, 넣으면 단일 영상 길이까지 조회
 supabase secrets set GEMINI_FALLBACK_MODELS=gemini-flash-latest,gemini-2.5-flash   # 선택
 supabase functions deploy analyze-reference
 ```
 
-`YOUTUBE_API_KEY`가 없으면 채널 공개 페이지에서 최근 영상을 읽지만 영상 길이를 알 수 없어 구간 분석 없이 전체를 분석합니다.
+`YOUTUBE_API_KEY`는 필요 없습니다. 유튜브 공개 RSS 피드는 현재 404를 자주 반환해 쓰지 않고, 채널 공개 페이지를 읽습니다.
 함수는 로그인한 사용자의 토큰만 받습니다.
 - 직접 선택한 영상 파일은 브라우저 안에서 프레임 수치만 분석하며 서버로 자동 전송하지 않습니다.
 - 영상 파일의 의미 분석은 프레임 묶음과 요청문을 준비한 뒤 사용자가 ChatGPT에 직접 첨부하는 방식입니다.
