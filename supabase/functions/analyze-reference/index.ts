@@ -27,6 +27,7 @@ type AnalyzeRequest = {
   title?: string;
   url?: string;
   provider?: "gemini" | "openai";
+  query?: string;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -262,6 +263,26 @@ async function resolveChannelFromPage(ref: ChannelRef) {
   return videos.length ? { id: channelId, title, videos } : null;
 }
 
+// Finds a channel by the name a client mentioned (e.g. "유튜브 '임대표의 식탁' 검색").
+async function searchChannel(query: string): Promise<ChannelRef | null> {
+  const search = new URLSearchParams({ search_query: query, sp: "EgIQAg==" });
+  const page = await fetch(`https://www.youtube.com/results?${search}`, {
+    headers: { "Accept-Language": "ko,en;q=0.8", "User-Agent": "Mozilla/5.0" },
+  });
+  if (!page.ok) return null;
+  const html = await page.text();
+  const handle = html.match(/"canonicalBaseUrl":"\/(@[^"]+)"/)?.[1];
+  if (handle) {
+    try {
+      return { kind: "handle", value: decodeURIComponent(handle) };
+    } catch {
+      return { kind: "handle", value: handle };
+    }
+  }
+  const channelId = html.match(/"channelId":"(UC[A-Za-z0-9_-]{22})"/)?.[1];
+  return channelId ? { kind: "id", value: channelId } : null;
+}
+
 function serviceHeaders() {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -412,9 +433,12 @@ async function handle(request: Request) {
   }
 
   const videoId = youtubeVideoId(body.url);
-  const channelRef = videoId ? null : youtubeChannelRef(body.url);
+  const query = typeof body.query === "string" ? body.query.trim().slice(0, 60) : "";
+  const channelRef = videoId
+    ? null
+    : youtubeChannelRef(body.url) || (query.length >= 2 ? await searchChannel(query) : null);
   if (!videoId && !channelRef) {
-    return jsonResponse({ error: "공개 YouTube 영상 또는 채널 링크가 필요합니다." }, 400);
+    return jsonResponse({ error: "공개 YouTube 영상·채널 링크가 필요하거나, 채널을 찾지 못했습니다." }, 400);
   }
   const title = String(body.title || "레퍼런스 영상");
 

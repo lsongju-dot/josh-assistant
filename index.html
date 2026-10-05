@@ -5139,16 +5139,12 @@
       }
     }
 
-    async function requestAiLinkAnalysis(url, title) {
+    async function requestAiLinkAnalysis(url, title, query = "") {
       if (!supabaseClient || !authSession) {
         throw new Error("AI 링크 분석은 로그인 후 사용할 수 있습니다.");
       }
       const { data, error } = await supabaseClient.functions.invoke("analyze-reference", {
-        body: {
-          title,
-          url,
-          provider: "gemini"
-        }
+        body: query ? { title, url, query, provider: "gemini" } : { title, url, provider: "gemini" }
       });
       if (error) {
         const serverMessage =
@@ -5827,20 +5823,22 @@
       }
       return null;
     }
-    async function analyzeBriefReference(url, token) {
+    async function analyzeBriefReference(url, token, channelQuery = "") {
       if (!authSession) {
         briefReferenceNote = "사용료 0원 · 규칙 계산 · 로그인하면 링크 영상의 캠 수·편집 강도까지 자동 반영돼요.";
         updateBriefEstimate();
         return;
       }
-      const isChannel = !extractYouTubeVideoId(url);
-      briefReferenceNote = isChannel
+      const isChannel = !url || !extractYouTubeVideoId(url);
+      briefReferenceNote = channelQuery && !url
+        ? `유튜브에서 '${channelQuery}' 채널을 찾아 최근 영상 3개를 분석하고 있어요. 끝나면 캠 수와 편집 강도가 자동 반영돼요.`
+        : isChannel
         ? "레퍼런스 채널의 최근 영상 3개를 분석하고 있어요. 끝나면 캠 수와 편집 강도가 자동 반영돼요."
         : "레퍼런스 영상을 분석하고 있어요. 끝나면 캠 수와 편집 강도가 자동 반영돼요.";
       updateBriefEstimate();
       try {
-        const metadata = await fetchReferenceMetadata(url);
-        const result = await requestAiLinkAnalysis(url.href, metadata.title);
+        const metadata = url ? await fetchReferenceMetadata(url) : { title: channelQuery };
+        const result = await requestAiLinkAnalysis(url ? url.href : "", metadata.title, url ? "" : channelQuery);
         if (token !== briefReferenceToken || !briefConditions) return;
         briefConditions = JoshBrief.applyReference(currentBriefConditions(), {
           mode: result.channel ? "channel" : "video",
@@ -5862,6 +5860,7 @@
       const text = document.getElementById("quickQuoteText").value.trim();
       const parsed = JoshBrief.parse(text);
       const referenceUrl = briefReferenceUrl(parsed.links);
+      const channelQuery = referenceUrl ? "" : parsed.channelQuery;
       briefReferenceToken += 1;
       briefReferenceNote = "";
       if (!text || (!parsed.hasConditions && !(referenceUrl && authSession))) {
@@ -5882,7 +5881,7 @@
       updateBriefEstimate();
       document.getElementById("briefOutput").focus({ preventScroll: true });
       document.getElementById("briefOutput").scrollIntoView({ behavior: "smooth", block: "start" });
-      if (referenceUrl) analyzeBriefReference(referenceUrl, briefReferenceToken);
+      if (referenceUrl || channelQuery) analyzeBriefReference(referenceUrl, briefReferenceToken, channelQuery);
     }
     function renderBriefHistory() {
       const stored = briefStorageRead(BRIEF_HISTORY_KEY, []);

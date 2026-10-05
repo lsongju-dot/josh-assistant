@@ -25,22 +25,43 @@
     const value = convert(single[1], single[2]) + (single[3] ? convert(single[3], single[4]) : 0);
     return { min: value, max: value, upper: /미만|이내|안\s*(?:나|넘)|넘지/.test(source.slice(0, 38)) };
   }
+  const cameraDevices = [
+    /dslr|미러리스|캐논|소니|니콘|루믹스|시네마\s*카메라/i,
+    /핸드폰|휴대폰|스마트폰|아이폰|갤럭시|폰으로/,
+    /오즈모|osmo|액션\s*캠|고프로|gopro|insta\s*360|인스타\s*360/i,
+    /캠코더/,
+    /웹캠/
+  ];
+  const requestedExtras = [
+    [/인트로/, "인트로"],
+    [/재(?:밌|밋|미있)는\s*(?:부분|장면)|하이라이트/, "재미 포인트 편집"],
+    [/화면\s*효과|이펙트|모션\s*그래픽|트랜지션/, "화면 효과"],
+    [/드립|예능\s*자막|밈|웃긴\s*자막/, "예능 자막"],
+    [/효과음|사운드\s*이펙트/, "효과음"]
+  ];
   function parse(input) {
     const text = String(input).normalize("NFKC").slice(0, 30000);
     const clean = text.replace(/https?:\/\/\S+/g, "");
     const links = text.match(/https?:\/\/[^\s<>"']+/g) || [];
     const bundle = /롱폼/.test(clean) && /숏폼|숏츠|쇼츠|릴스/.test(clean);
     const profile = /다큐|documentary/i.test(clean) ? "documentary" : /AI\s*영상|광고|브랜디드/i.test(clean) ? "ad" : !bundle && /숏폼|숏츠|쇼츠|릴스/i.test(clean) ? "shortform" : /패션|착장|코디|룩북/.test(clean) ? "fashion" : "general";
-    const original = duration(clean, "원본|촬영본");
+    const original = duration(clean, "원본|촬영본|촬영\\s*시간|촬영\\s*분량|녹화\\s*시간");
     let final = duration(clean, "최종본|완성본|최종|완성|러닝타임");
     if (!final) {
-      const withoutOriginal = clean.replace(/(?:원본|촬영본)[^\n.!?]*(?:\n|[.!?]|$)/g, "");
+      const withoutOriginal = clean.replace(/(?:원본|촬영본|촬영\s*시간|촬영\s*분량|녹화\s*시간)[^\n.!?]*(?:\n|[.!?]|$)/g, "");
       const candidate = withoutOriginal.match(/(?:^|\s)(\d+(?:\.\d+)?\s*(?:분|초)?\s*(?:[~～–—-]|에서)?\s*\d*(?:\.\d+)?\s*(?:분|초))\s*(?:전후|내외|짜리|정도|영상|예정|분량|$)/);
       if (candidate) final = duration(candidate[1]);
     }
     const cam = clean.match(/(?:([1-3])\s*캠|(?:캠|카메라)\s*([1-3])\s*(?:개|대)?)/);
     const koreanCam = clean.match(/(원|투|쓰리|한|두|세)\s*(?:캠|대의?\s*카메라)/);
-    const cameraCount = Number(cam?.[1] || cam?.[2]) || ({ 원: 1, 한: 1, 투: 2, 두: 2, 쓰리: 3, 세: 3 }[koreanCam?.[1]]) || 0;
+    const devices = cameraDevices.filter(pattern => pattern.test(clean)).length;
+    const sourceCount = Number(clean.match(/([2-3])\s*개(?:의)?\s*(?:영상|소스|앵글|카메라)|(?:영상|소스|앵글)[이가은는]?\s*([2-3])\s*개/)?.slice(1).find(Boolean)) || 0;
+    const deviceCameras = devices >= 2 ? Math.min(3, Math.max(devices, sourceCount)) : 0;
+    const cameraCount = Number(cam?.[1] || cam?.[2]) || ({ 원: 1, 한: 1, 투: 2, 두: 2, 쓰리: 3, 세: 3 }[koreanCam?.[1]]) || deviceCameras;
+    const sync = cameraCount >= 2 && /동시에\s*시작(?:은|이)?\s*(?:아니|안)|싱크|시작\s*(?:부분|시점)[^\n]{0,20}다르|(?:메인\s*)?소리[는가]?[^\n.]{0,12}(?:따로|에\s*담)|오디오\s*따로|따로\s*녹음/.test(clean);
+    const channelQuery = (clean.match(/(?:유튜브|youtube|채널)[^\n'"‘“「]{0,10}['"‘“「]([^'"’”」\n]{2,40})['"’”」]/i)?.[1] || "").trim();
+    const extras = requestedExtras.filter(([pattern]) => pattern.test(clean)).map(([, label]) => label);
+    const textIntensity = extras.length >= 4 ? 0.2 : extras.length >= 2 ? 0.1 : 0;
     const cutNotReady = /컷(?:\s*편집|편)?[^\n,.]{0,12}(?:안\s*(?:되어|돼|했)|미완료|완료[^\n,.]{0,5}아니)/.test(clean);
     const scope = !cutNotReady && /컷(?:\s*편집|편)?[^\n,.]{0,12}(?:완료|되어|돼\s*있)|종편만/.test(clean) ? "locked" : /축소\s*편집[^\n,.]{0,8}(?:없|않)|원본[^\n,.]{0,30}(?:완성본|최종본)[^\n,.]{0,15}(?:비슷|동일)|각도만\s*다른/.test(clean) ? "light" : /컷\s*(?:편집|편)\s*만/.test(clean) ? "cut" : "full";
     const images = /사진|이미지|자료\s*화면|스톡/.test(clean);
@@ -56,13 +77,16 @@
     if (!final) { assumptions.push("최종 길이는 임시값"); questions.push("완성본 길이는 몇 분 또는 몇 초인가요?"); }
     if (final?.range) assumptions.push(`완성본 ${final.min}~${final.max}분 중 긴 분량으로 계산`);
     if (!cameraCount) { assumptions.push("카메라 1대 가정"); questions.push("카메라는 몇 대로 촬영하나요?"); }
+    else if (!cam && !koreanCam) assumptions.push(`촬영 기기 ${devices}종 언급으로 ${cameraCount}캠 계산`);
+    if (sync) assumptions.push("카메라별 시작 시점·메인 오디오가 달라 싱크 작업 포함");
+    if (textIntensity) assumptions.push(`요청 편집 요소(${extras.join(", ")})로 편집 강도 +${Math.round(textIntensity * 100)}%`);
     if (!original) { assumptions.push("원본 길이는 임시값"); questions.push("원본의 실제 총 재생시간은 얼마나 되나요?"); }
     if (original?.upper) assumptions.push(`원본 ${original.max}분은 확정 길이가 아닌 상한`);
     if (original?.range) assumptions.push(`원본 ${original.min}~${original.max}분 중 긴 분량으로 계산`);
     if (images && !photoNone && !supplied) questions.push("제공되는 사진 수와 편집자가 찾아야 하는 사진 수는 각각 몇 장인가요?");
     if (!revisions) assumptions.push("수정 1회 포함 가정");
     questions.push("원본·자료 전달일과 희망 1차본 날짜는 언제인가요?");
-    if (links.length) assumptions.push("레퍼런스 링크는 보관만 하며 영상 시청·분석은 하지 않음");
+    if (links.length || channelQuery) assumptions.push("레퍼런스 링크는 보관만 하며 영상 시청·분석은 하지 않음");
     if (/물량|장기|고정|정기|월\s*\d+/.test(clean)) assumptions.push("확정 물량과 실제 공수 확인 전에는 장기 할인 미적용");
     const short = profile === "shortform" || profile === "ad";
     const noCaptions = /자막\s*(?:없|제외|불필요)/.test(clean);
@@ -71,7 +95,7 @@
       photos: photoNone ? "none" : supplied ? "provided" : partial && images ? "partial" : images ? "research" : "none",
       captions: !noCaptions, revisions: Number(revisions?.[1] || 1), monthly: Number(count?.[1] || 1), daily: 3,
       hourly: 20000, urgent: /긴급|급행|당일|내일\s*마감|ASAP/i.test(clean),
-      intensity: 0, sources: { cameras: Boolean(cameraCount), minutes: Boolean(final), raw: Boolean(original),
+      intensity: textIntensity, sync, extras, channelQuery, sources: { intensity: Boolean(textIntensity), cameras: Boolean(cameraCount), minutes: Boolean(final), raw: Boolean(original),
         profile: profile !== "general" || /롱폼|일반/.test(clean), photos: images, captions: noCaptions || /자막/.test(clean) },
       assumptions, questions, links, hasConditions: Boolean(final || original || cam || /다큐|패션|편집|숏폼|숏츠|쇼츠|롱폼|자막/.test(clean)) };
   }
@@ -97,6 +121,8 @@
     add(`편집 강도 +${Math.round(intensity * 100)}%`, base * intensity);
     const review = scope === "locked" ? 0 : Math.max(0, c.raw - 30) * (c.profile === "documentary" ? 800 : 500);
     add("긴 원본 검수·선별", review);
+    const syncCams = c.sync && c.cameras >= 2 && scope !== "locked" ? c.cameras - 1 : 0;
+    add("멀티캠 싱크·오디오 정리", syncCams * 15000);
     const story = c.profile === "documentary" && scope === "full" ? c.minutes * 5000 : 0;
     add("다큐 구성·현장음 정리", story);
     const photo = scope === "cut" || c.photos === "none" ? 0 : Math.max(20000, c.minutes * 4000);
@@ -110,7 +136,7 @@
     const rawHours = scope === "locked" ? c.minutes / 60 : c.raw / 60 * (c.profile === "documentary" ? 1.8 : 1.3);
     const hours = (1 + intensity) * (short ? (c.profile === "ad" ? 4 : 1.5) * c.minutes : c.minutes * (c.profile === "documentary" ? 0.65 : 0.42)) * scopeScale;
     const photoHours = photo ? c.minutes * 0.13 + (c.photos === "research" ? 2 : c.photos === "partial" ? 0.75 : 0) : 0;
-    const lowHours = Math.ceil((rawHours + hours + photoHours + 0.75 + c.revisions * 0.4) * 2) / 2;
+    const lowHours = Math.ceil((rawHours + hours + photoHours + syncCams * 0.5 + 0.75 + c.revisions * 0.4) * 2) / 2;
     const highHours = Math.ceil(lowHours * 1.3 * 2) / 2;
     const cost = items.reduce((sum, item) => sum + item.amount, 0);
     const laborFloor = round(lowHours * c.hourly);
@@ -132,9 +158,16 @@
       if (q.photos !== "none") included.push("사진 삽입");
     }
     if (q.profile === "documentary" && q.scope === "full") included.push("이야기 흐름 구성");
+    if (q.scope !== "cut" && Array.isArray(q.extras)) included.push(...q.extras);
+    if (q.sync && q.cameras >= 2 && q.scope !== "locked") included.push(`${q.cameras}캠 싱크 정리`);
     const ref = q.reference;
     const refText = ref ? `보내주신 레퍼런스${ref.mode === "channel" ? " 채널의 최근 영상" : " 영상"}을 확인해 ${q.cameras}캠${q.intensity ? `, 편집 강도 ${intensityLabel(q.intensity)}` : ""} 기준으로 산정했습니다.\n\n` : "";
-    return `안녕하세요! 말씀해 주신 작업은 최종본 ${q.minutes}분 이내, ${q.cameras}캠, 원본 ${q.raw}분 이내 기준으로 편당 ${money(q.recommended)}의 가견적을 안내드립니다.\n\n${refText}${included.join(", ")}과 수정 ${q.revisions}회가 포함됩니다.${q.photos === "partial" ? " 사진은 제공 자료를 우선 사용하며, 추가 검색 범위는 자료 확인 후 협의드립니다." : q.photos === "research" ? " 사진 검색 수량과 범위는 자료 확인 후 확정하겠습니다." : ""}\n\n${q.monthly > 1 ? `월 ${q.monthly}편 기준 합계는 ${money(q.monthlyTotal)}입니다. 확정 물량과 첫 편 작업량을 확인한 뒤 정기 단가를 협의할 수 있습니다.\n\n` : ""}원본과 자료 전달일, 희망 납기를 알려주시면 현재 작업 일정과 확인 후 1차본 전달일을 확정해 드리겠습니다. 분량이나 작업 범위가 달라지면 착수 전에 금액을 다시 안내드리겠습니다.`;
+    return `안녕하세요! 말씀해 주신 작업은 최종본 ${q.minutes}분 이내, ${q.cameras}캠, 원본 ${q.raw}분 이내 기준으로 편당 ${money(q.recommended)}의 가견적을 안내드립니다.\n\n${refText}${withAnd(included.join(", "))} 수정 ${q.revisions}회가 포함됩니다.${q.photos === "partial" ? " 사진은 제공 자료를 우선 사용하며, 추가 검색 범위는 자료 확인 후 협의드립니다." : q.photos === "research" ? " 사진 검색 수량과 범위는 자료 확인 후 확정하겠습니다." : ""}\n\n${q.monthly > 1 ? `월 ${q.monthly}편 기준 합계는 ${money(q.monthlyTotal)}입니다. 확정 물량과 첫 편 작업량을 확인한 뒤 정기 단가를 협의할 수 있습니다.\n\n` : ""}원본과 자료 전달일, 희망 납기를 알려주시면 현재 작업 일정과 확인 후 1차본 전달일을 확정해 드리겠습니다. 분량이나 작업 범위가 달라지면 착수 전에 금액을 다시 안내드리겠습니다.`;
+  }
+  // Picks 과/와 after the last listed item (non-Hangul endings keep 과).
+  function withAnd(text) {
+    const code = text.charCodeAt(text.length - 1) - 0xac00;
+    return text + (code >= 0 && code <= 11171 && code % 28 === 0 ? "와" : "과");
   }
   const intensityLabel = value => value >= 0.3 ? "매우 높음" : value >= 0.2 ? "높음" : value >= 0.1 ? "보통 이상" : "기본";
   const heavyFactors = ["cutDensity", "pointTypography", "motionGraphics", "maskingTracking", "zoomReframe", "soundEffects", "color", "broll"];
@@ -194,7 +227,7 @@
     }
     if (!locked("captions") && factors.subtitleDensity === "high") c.captions = true;
     if (!(c.edited || []).includes("intensity")) {
-      c.intensity = referenceIntensity(analysis);
+      c.intensity = Math.max(sources.intensity ? Number(conditions.intensity) || 0 : 0, referenceIntensity(analysis));
       if (c.intensity) notes.push(`편집 강도 ${intensityLabel(c.intensity)}`);
     }
     c.reference = {
